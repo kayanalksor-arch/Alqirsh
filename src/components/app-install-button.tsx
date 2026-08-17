@@ -91,7 +91,7 @@ export function AppInstallButton() {
           onClick={fallbackMode ? () => setIsVisible(false) : handleInstall}
           className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-3 py-2.5 text-sm font-bold text-white"
         >
-          <Download size={15} /> {fallbackMode ? 'حسناً' : 'تنزيل'}
+          <Download size={15} /> {fallbackMode ? 'تنزيل التطبيق' : 'تنزيل التطبيق'}
         </button>
         <button type="button" onClick={() => setIsVisible(false)} className="rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm font-bold text-[var(--muted)]">
           لاحقًا
