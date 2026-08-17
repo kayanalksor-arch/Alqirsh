@@ -1,0 +1,4 @@
+import { DashboardShell } from '@/components/dashboard-shell';
+import { ManagedEntityManager } from '@/components/managed-entity-manager';
+const config={table:'managed_tenants',title:'مستأجرون',singular:'مستأجر',display:['full_name','phone','email'] as const,fields:[{key:'full_name',label:'الاسم',required:true},{key:'phone',label:'الهاتف'},{key:'email',label:'البريد الإلكتروني'},{key:'address',label:'العنوان',type:'textarea' as const},{key:'notes',label:'ملاحظات',type:'textarea' as const}]};
+export default function TenantsPage(){return <DashboardShell><header className="border-b border-[var(--line)] bg-[var(--surface)] px-5 py-5 lg:px-9"><p className="eyebrow">إدارة الأملاك</p><h1 className="mt-1 text-2xl font-black">المستأجرون</h1></header><ManagedEntityManager config={config}/></DashboardShell>}

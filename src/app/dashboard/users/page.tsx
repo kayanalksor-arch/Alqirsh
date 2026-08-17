@@ -1,0 +1,5 @@
+import { DashboardShell } from '@/components/dashboard-shell';
+import { UsersManager } from '@/components/users-manager';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
+export default async function UsersPage() { const db=await createClient(); const {data:{user}}=await db.auth.getUser(); const {data:profile}=user?await db.from('profiles').select('role').eq('id',user.id).single():{data:null}; if(!user||profile?.role!=='admin')return <DashboardShell><main className="p-9"><section className="panel rounded-2xl p-6">هذه الصفحة متاحة لمدير النظام فقط.</section></main></DashboardShell>; const {data,error}=await createAdminClient().from('profiles').select('id,full_name,email,role,status,created_at').order('created_at',{ascending:false}); return <DashboardShell><header className="border-b border-[var(--line)] bg-[var(--surface)] px-5 py-5 lg:px-9"><p className="eyebrow">إدارة الحسابات</p><h1 className="mt-1 text-2xl font-black">المستخدمون</h1></header>{error?<main className="p-9">تعذر تحميل المستخدمين: {error.message}</main>:<UsersManager users={data??[]}/>}</DashboardShell>; }
