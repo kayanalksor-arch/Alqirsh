@@ -50,6 +50,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   const [form, setForm] = useState<FormFields | null>(null);
   const [editing, setEditing] = useState<Offer | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [viewing, setViewing] = useState<Offer | null>(null);
   const [removing, setRemoving] = useState<Offer | null>(null);
 
   const load = useCallback(async () => {
@@ -245,6 +246,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
                 </div>
                 <p className="mt-2 text-sm text-[var(--muted)]">{offer.location ?? 'الموقع غير محدد'} · {offer.property_type ?? 'نوع غير محدد'}</p>
                 <div className="mt-auto flex justify-between gap-2 pt-4">
+                  <button type="button" onClick={() => setViewing(offer)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-bold">عرض</button>
                   <button type="button" onClick={() => open(offer)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-bold"><Edit3 size={16} />تعديل</button>
                   <button type="button" onClick={() => setRemoving(offer)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 px-3 py-2 text-sm font-bold text-red-600"><Trash2 size={16} />حذف</button>
                 </div>
@@ -321,6 +323,63 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
                 <button type="button" onClick={() => { setForm(null); setEditing(null); }} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--line)] px-5 font-bold">إلغاء</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {viewing && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] bg-[var(--surface)] p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="eyebrow">تفاصيل العرض</p>
+                <h3 className="mt-1 text-2xl font-black">{viewing.title}</h3>
+              </div>
+              <button type="button" onClick={() => setViewing(null)} className="grid size-10 place-items-center rounded-full border border-[var(--line)]"><X size={18} /></button>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              <div className="rounded-xl border border-[var(--line)] p-3">
+                <p className="text-xs text-[var(--muted)]">الحالة</p>
+                <p className="mt-2 font-bold">{viewing.status}</p>
+              </div>
+              <div className="rounded-xl border border-[var(--line)] p-3">
+                <p className="text-xs text-[var(--muted)]">السعر</p>
+                <p className="mt-2 font-bold">{viewing.price ?? '—'} ج.م</p>
+              </div>
+              <div className="rounded-xl border border-[var(--line)] p-3">
+                <p className="text-xs text-[var(--muted)]">الموقع</p>
+                <p className="mt-2 font-bold">{viewing.location ?? 'غير محدد'}</p>
+              </div>
+              <div className="rounded-xl border border-[var(--line)] p-3">
+                <p className="text-xs text-[var(--muted)]">العنوان التفصيلي</p>
+                <p className="mt-2 font-bold">{viewing.address ?? 'غير محدد'}</p>
+              </div>
+              <div className="rounded-xl border border-[var(--line)] p-3">
+                <p className="text-xs text-[var(--muted)]">نوع العقار</p>
+                <p className="mt-2 font-bold">{viewing.property_type ?? 'غير محدد'}</p>
+              </div>
+              <div className="rounded-xl border border-[var(--line)] p-3">
+                <p className="text-xs text-[var(--muted)]">المساحة</p>
+                <p className="mt-2 font-bold">{viewing.area ?? '—'}</p>
+              </div>
+              <div className="rounded-xl border border-[var(--line)] p-3">
+                <p className="text-xs text-[var(--muted)]">غرف النوم / الحمامات</p>
+                <p className="mt-2 font-bold">{viewing.bedrooms ?? '—'} / {viewing.bathrooms ?? '—'}</p>
+              </div>
+              <div className="rounded-xl border border-[var(--line)] p-3">
+                <p className="text-xs text-[var(--muted)]">الوصف</p>
+                <p className="mt-2 whitespace-pre-line font-bold">{viewing.description || 'لا يوجد وصف.'}</p>
+              </div>
+              {viewing.map_url && (
+                <div className="rounded-xl border border-[var(--line)] p-3">
+                  <p className="text-xs text-[var(--muted)]">رابط الخريطة</p>
+                  <a href={viewing.map_url} target="_blank" rel="noreferrer" className="mt-2 inline-block break-all font-bold text-[var(--brand)] underline">
+                    {viewing.map_url}
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

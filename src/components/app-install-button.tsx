@@ -1,7 +1,7 @@
 "use client";
 
 import Image from 'next/image';
-import { Download } from 'lucide-react';
+import { Download, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 type BeforeInstallPromptEvent = Event & {
@@ -10,37 +10,21 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 export function AppInstallButton() {
-  const [isStandalone, setIsStandalone] = useState(false);
-  const [canInstall, setCanInstall] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const updateStandalone = () => {
-      const standalone = window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
-      setIsStandalone(standalone);
-      return standalone;
-    };
-
-    const detectInstallSupport = () => {
-      const ua = navigator.userAgent;
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
-      const isChromiumDesktop = /Chrome|Edg|Opera/i.test(ua) && !/Mobile/i.test(ua);
-      return !updateStandalone() && (isMobile || isChromiumDesktop);
-    };
-
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setDeferredPrompt(event as BeforeInstallPromptEvent);
-      setCanInstall(true);
+      setOpen(true);
     };
 
     const onAppInstalled = () => {
-      setCanInstall(false);
       setDeferredPrompt(null);
-      setIsStandalone(true);
+      setOpen(false);
     };
 
-    setCanInstall(detectInstallSupport());
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
     window.addEventListener('appinstalled', onAppInstalled);
 
@@ -51,34 +35,41 @@ export function AppInstallButton() {
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt && !canInstall) return;
-
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      setDeferredPrompt(null);
-      setCanInstall(false);
-      return;
-    }
-
-    if (typeof window !== 'undefined') {
-      const event = new CustomEvent('beforeinstallprompt');
-      window.dispatchEvent(event);
-    }
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+    setOpen(false);
   };
 
-  if (isStandalone || !canInstall) return null;
+  if (!open || !deferredPrompt) return null;
 
   return (
-    <button
-      type="button"
-      onClick={handleInstall}
-      className="inline-flex items-center gap-2 rounded-xl border border-[var(--brand)] bg-[var(--brand)] px-3 py-2 text-sm font-bold text-white shadow-sm transition hover:brightness-95"
-      aria-label="تحميل التطبيق"
-    >
-      <Image src="/brand/alqirsh-logo.jpg" alt="شعار القِرش" width={28} height={28} className="size-7 rounded-lg object-cover" />
-      <span className="hidden sm:inline">تحميل التطبيق</span>
-      <Download size={15} />
-    </button>
+    <div className="fixed bottom-4 left-4 z-[60] w-[min(92vw,360px)] rounded-[1.5rem] border border-[var(--line)] bg-[var(--surface)] p-3 shadow-[0_18px_50px_rgba(15,23,42,0.2)] backdrop-blur-sm">
+      <div className="flex items-start gap-3">
+        <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--canvas)]">
+          <Image src="/brand/alqirsh-logo.jpg" alt="القِرش" width={52} height={52} className="size-full object-cover" />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold tracking-[0.2em] text-[var(--muted)]">تطبيق القِرش</p>
+          <h3 className="mt-1 text-base font-black">تنزيل التطبيق</h3>
+          <p className="mt-1 text-xs text-[var(--muted)]">أضف التطبيق للوصول السريع للاستخدام.</p>
+        </div>
+
+        <button type="button" aria-label="إغلاق" onClick={() => setOpen(false)} className="grid size-8 place-items-center rounded-full border border-[var(--line)] text-[var(--muted)]">
+          <X size={15} />
+        </button>
+      </div>
+
+      <div className="mt-3 flex gap-2">
+        <button type="button" onClick={handleInstall} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-3 py-2.5 text-sm font-bold text-white">
+          <Download size={15} /> تنزيل
+        </button>
+        <button type="button" onClick={() => setOpen(false)} className="rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm font-bold text-[var(--muted)]">
+          لاحقًا
+        </button>
+      </div>
+    </div>
   );
 }
