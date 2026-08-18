@@ -38,7 +38,7 @@ export default function Home() {
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-semibold text-emerald-100">شريك</p>
-                  <p className="text-sm font-black text-white">مكتب الشروق</p>
+                  <p className="text-sm font-black text-white">مكتب الشروق للأستشارات الهندسية </p>
                 </div>
               </div>
 

@@ -17,6 +17,7 @@ type Offer = {
   area: number | null;
   bedrooms: number | null;
   bathrooms: number | null;
+  facade: string | null;
   status: string;
 };
 
@@ -31,10 +32,33 @@ type FormFields = {
   area: string;
   bedrooms: string;
   bathrooms: string;
+  facade: string;
   status: string;
+  image_files: File[];
 };
 
-const blank = (): FormFields => ({ title: '', description: '', property_type: '', price: '', location: '', address: '', map_url: '', area: '', bedrooms: '', bathrooms: '', status: 'draft' });
+const blank = (): FormFields => ({ title: '', description: '', property_type: '', price: '', location: '', address: '', map_url: '', area: '', bedrooms: '', bathrooms: '', facade: '', status: 'draft', image_files: [] });
+
+async function ensureManagerProfile(db: ReturnType<typeof createClient>) {
+  const { data: { user }, error: userError } = await db.auth.getUser();
+  if (userError || !user) throw new Error('يجب تسجيل الدخول أولاً.');
+
+  const { data: profile } = await db.from('profiles').select('role').eq('id', user.id).maybeSingle();
+  const normalizedEmail = user.email?.toLowerCase() ?? '';
+  const role = profile?.role ?? (normalizedEmail === 'ca.markode@gmail.com' ? 'admin' : 'member');
+
+  if (!profile || profile.role !== role) {
+    const { error: upsertError } = await db.from('profiles').upsert({
+      id: user.id,
+      email: user.email ?? null,
+      full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? '',
+      role,
+    }, { onConflict: 'id' });
+    if (upsertError) throw upsertError;
+  }
+
+  return { user, role };
+}
 
 export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   const table = kind === 'sale' ? 'sale_offers' : 'rental_offers';
@@ -56,21 +80,39 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   const load = useCallback(async () => {
     setLoading(true);
     const db = createClient();
-    const [{ data, error }, { data: media }] = await Promise.all([
-      db.from(table).select('id,title,description,property_type,price,location,address,map_url,area,bedrooms,bathrooms,status').order('created_at', { ascending: false }),
-      db.from('property_images').select('property_id,image_url,image_path,sort_order').eq('property_type', kind).order('sort_order'),
-    ]);
-
-    if (error) setMessage('تعذر تحميل العروض. تحقق من الصلاحيات.');
-    else setOffers((data ?? []) as Offer[]);
-
-    const next: Record<string, string> = {};
-    for (const image of media ?? []) {
-      if (!next[image.property_id]) {
-        next[image.property_id] = image.image_url || db.storage.from('listing-images').getPublicUrl(image.image_path).data.publicUrl;
+    try {
+      const { role } = await ensureManagerProfile(db);
+      if (!['admin', 'property_manager'].includes(role)) {
+        setMessage('لا توجد صلاحية كافية لعرض هذه العروض.');
+        setOffers([]);
+        setLoading(false);
+        return;
       }
+
+      const [{ data, error }, { data: media }] = await Promise.all([
+        db.from(table).select('id,title,description,property_type,price,location,address,map_url,area,bedrooms,bathrooms,facade,status').order('created_at', { ascending: false }),
+        db.from('property_images').select('property_id,image_url,image_path,sort_order').eq('property_type', kind).order('sort_order'),
+      ]);
+
+      if (error) {
+        setMessage('تعذر تحميل العروض. تحقق من الصلاحيات.');
+        setOffers([]);
+      } else {
+        setMessage('');
+        setOffers((data ?? []) as Offer[]);
+      }
+
+      const next: Record<string, string> = {};
+      for (const image of media ?? []) {
+        if (!next[image.property_id]) {
+          next[image.property_id] = image.image_url || db.storage.from('listing-images').getPublicUrl(image.image_path).data.publicUrl;
+        }
+      }
+      setImages(next);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'تعذر تحميل العروض. تحقق من الصلاحيات.');
+      setOffers([]);
     }
-    setImages(next);
     setLoading(false);
   }, [kind, table]);
 
@@ -79,6 +121,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   const locations = useMemo(() => [...new Set(offers.map((offer) => offer.location).filter(Boolean))] as string[], [offers]);
   const statuses = useMemo(() => [...new Set(offers.map((offer) => offer.status).filter(Boolean))] as string[], [offers]);
   const normalizeText = (value: string) => value.toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+  const formatPrice = (price: number | null) => price ? new Intl.NumberFormat('ar-EG', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(price) : '—';
 
   const shown = useMemo(
     () =>
@@ -108,10 +151,24 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
         area: String(offer.area ?? ''),
         bedrooms: String(offer.bedrooms ?? ''),
         bathrooms: String(offer.bathrooms ?? ''),
+        facade: offer.facade ?? '',
         status: offer.status,
+        image_files: [],
       } : blank(),
     );
   };
+
+  function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
+    setPendingFiles((previous) => [...previous, ...files]);
+    setForm((current) => current ? { ...current, image_files: [...(current.image_files ?? []), ...files] } : current);
+  }
+
+  function removeImage(index: number) {
+    setPendingFiles((previous) => previous.filter((_, itemIndex) => itemIndex !== index));
+    setForm((current) => current ? { ...current, image_files: (current.image_files ?? []).filter((_, itemIndex) => itemIndex !== index) } : current);
+  }
 
   async function uploadFiles(db: ReturnType<typeof createClient>, offerId: string) {
     for (let index = 0; index < pendingFiles.length; index += 1) {
@@ -143,14 +200,15 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
 
     setSaving(true);
     const db = createClient();
-    const { data: { user } } = await db.auth.getUser();
-    if (!user) {
-      setMessage('انتهت الجلسة. سجّل الدخول من جديد.');
-      setSaving(false);
-      return;
-    }
+    try {
+      const { user, role } = await ensureManagerProfile(db);
+      if (!['admin', 'property_manager'].includes(role)) {
+        setMessage('ليس لديك صلاحية حفظ العروض.');
+        setSaving(false);
+        return;
+      }
 
-    const payload = {
+      const payload = {
       title: form.title.trim(),
       description: form.description.trim() || null,
       property_type: form.property_type.trim() || null,
@@ -161,27 +219,31 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
       area: value(form.area),
       bedrooms: value(form.bedrooms),
       bathrooms: value(form.bathrooms),
+      facade: form.facade.trim() || null,
       status: form.status,
     };
 
-    const response = editing
-      ? await db.from(table).update(payload).eq('id', editing.id).select('id').single()
-      : await db.from(table).insert({ ...payload, created_by: user.id }).select('id').single();
+      const response = editing
+        ? await db.from(table).update(payload).eq('id', editing.id).select('id').single()
+        : await db.from(table).insert({ ...payload, created_by: user.id }).select('id').single();
 
-    if (response.error || !response.data) {
-      setMessage('تعذر حفظ العرض. تحقق من البيانات والصلاحيات.');
-      setSaving(false);
-      return;
-    }
+      if (response.error || !response.data) {
+        setMessage('تعذر حفظ العرض. تحقق من البيانات والصلاحيات.');
+        setSaving(false);
+        return;
+      }
 
-    try {
-      await uploadFiles(db, response.data.id);
-      setMessage('تم حفظ العرض والصور بنجاح.');
-      setForm(null);
-      setEditing(null);
-      await load();
-    } catch {
-      setMessage('تم حفظ العرض، لكن تعذر رفع بعض الصور.');
+      try {
+        await uploadFiles(db, response.data.id);
+        setMessage('تم حفظ العرض والصور بنجاح.');
+        setForm(null);
+        setEditing(null);
+        await load();
+      } catch {
+        setMessage('تم حفظ العرض، لكن تعذر رفع بعض الصور.');
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'تعذر حفظ العرض. تحقق من البيانات والصلاحيات.');
     }
     setSaving(false);
   }
@@ -189,11 +251,23 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   async function remove() {
     if (!removing) return;
     setSaving(true);
-    const { error } = await createClient().from(table).delete().eq('id', removing.id);
-    setMessage(error ? 'تعذر حذف العرض.' : 'تم حذف العرض بنجاح.');
-    if (!error) {
-      setRemoving(null);
-      await load();
+    try {
+      const db = createClient();
+      const { role } = await ensureManagerProfile(db);
+      if (!['admin', 'property_manager'].includes(role)) {
+        setMessage('ليس لديك صلاحية حذف العروض.');
+        setSaving(false);
+        return;
+      }
+
+      const { error } = await db.from(table).delete().eq('id', removing.id);
+      setMessage(error ? 'تعذر حذف العرض.' : 'تم حذف العرض بنجاح.');
+      if (!error) {
+        setRemoving(null);
+        await load();
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'تعذر حذف العرض.');
     }
     setSaving(false);
   }
@@ -242,7 +316,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
                 <p className="text-xs font-bold text-[var(--brand)]">{offer.status}</p>
                 <div className="mt-2 flex items-start justify-between gap-3">
                   <h2 className="flex-1 font-black">{offer.title}</h2>
-                  <strong className="shrink-0 text-[var(--brand)]">{offer.price ?? '—'} ج.م</strong>
+                  <strong className="shrink-0 text-[var(--brand)]">{formatPrice(offer.price)} ج.م</strong>
                 </div>
                 <p className="mt-2 text-sm text-[var(--muted)]">{offer.location ?? 'الموقع غير محدد'} · {offer.property_type ?? 'نوع غير محدد'}</p>
                 <div className="mt-auto flex justify-between gap-2 pt-4">
@@ -257,9 +331,10 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
       )}
 
       {form && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[1.75rem] bg-[var(--surface)] p-5 shadow-2xl">
-            <div className="flex items-center justify-between gap-3">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 p-2 sm:p-4">
+          <div className="mx-auto grid min-h-full w-full max-w-3xl place-items-center py-2 sm:py-4">
+            <div className="max-h-[82vh] w-full overflow-y-auto rounded-[1.5rem] bg-[var(--surface)] p-4 shadow-2xl sm:max-h-[90vh] sm:rounded-[1.75rem] sm:p-5">
+              <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="eyebrow">{editing ? 'تعديل' : 'إضافة'} {entity}</p>
                 <h2 className="mt-1 text-2xl font-black">{editing ? editing.title : `عرض ${entity}`}</h2>
@@ -305,6 +380,10 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
                   <input dir="ltr" value={form.bathrooms} onChange={(event) => setForm({ ...form, bathrooms: event.target.value })} className="min-h-11 rounded-xl border border-[var(--line)] bg-transparent px-3 outline-none focus:ring-2 focus:ring-emerald-500" />
                 </label>
 
+                <label className="flex flex-col gap-2 text-sm font-bold">واجهة العرض
+                  <input value={form.facade} onChange={(event) => setForm({ ...form, facade: event.target.value })} className="min-h-11 rounded-xl border border-[var(--line)] bg-transparent px-3 outline-none focus:ring-2 focus:ring-emerald-500" placeholder="مثال: شارع رئيسي، بحر، حديقة" />
+                </label>
+
                 <label className="flex flex-col gap-2 text-sm font-bold">الحالة
                   <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 outline-none focus:ring-2 focus:ring-emerald-500">
                     <option value="draft">مسودة</option>
@@ -316,6 +395,33 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
                 <label className="flex flex-col gap-2 text-sm font-bold md:col-span-2">الوصف
                   <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="min-h-28 rounded-xl border border-[var(--line)] bg-transparent px-3 py-3 outline-none focus:ring-2 focus:ring-emerald-500" />
                 </label>
+
+                <label className="flex flex-col gap-2 text-sm font-bold md:col-span-2">صور العرض
+                  <input type="file" multiple accept="image/*" onChange={handleImageChange} className="min-h-11 rounded-xl border border-[var(--line)] bg-transparent px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <p className="text-xs text-[var(--muted)]">يمكنك إضافة عدة صور. سيتم رفع جميع الصور المختارة.</p>
+                </label>
+
+                {form.image_files && form.image_files.length > 0 && (
+                  <div className="md:col-span-2">
+                    <p className="mb-3 text-sm font-bold">الصور المختارة:</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {form.image_files.map((file, index) => (
+                        <div key={`${file.name}-${index}`} className="relative flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-3">
+                          <div className="h-12 w-12 overflow-hidden rounded-lg">
+                            <img src={URL.createObjectURL(file)} alt={`معاينة ${index + 1}`} className="h-full w-full object-cover" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-semibold">{file.name}</p>
+                            <p className="text-xs text-[var(--muted)]">{(file.size / 1024).toFixed(2)} KB</p>
+                          </div>
+                          <button type="button" onClick={() => removeImage(index)} className="text-red-600 hover:text-red-700">
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 flex flex-wrap gap-3">
@@ -323,14 +429,16 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
                 <button type="button" onClick={() => { setForm(null); setEditing(null); }} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--line)] px-5 font-bold">إلغاء</button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
 
       {viewing && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] bg-[var(--surface)] p-6">
-            <div className="flex items-start justify-between gap-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/55 p-2 sm:p-4">
+          <div className="mx-auto grid min-h-full w-full max-w-2xl place-items-center py-2 sm:py-4">
+            <div className="max-h-[82vh] w-full overflow-y-auto rounded-[1.5rem] bg-[var(--surface)] p-4 sm:max-h-[90vh] sm:rounded-[1.75rem] sm:p-6">
+              <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="eyebrow">تفاصيل العرض</p>
                 <h3 className="mt-1 text-2xl font-black">{viewing.title}</h3>
@@ -345,7 +453,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
               </div>
               <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">السعر</p>
-                <p className="mt-2 font-bold">{viewing.price ?? '—'} ج.م</p>
+                <p className="mt-2 font-bold">{formatPrice(viewing.price)} ج.م</p>
               </div>
               <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">الموقع</p>
@@ -368,6 +476,10 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
                 <p className="mt-2 font-bold">{viewing.bedrooms ?? '—'} / {viewing.bathrooms ?? '—'}</p>
               </div>
               <div className="rounded-xl border border-[var(--line)] p-3">
+                <p className="text-xs text-[var(--muted)]">واجهة العرض</p>
+                <p className="mt-2 font-bold">{viewing.facade ?? 'غير محددة'}</p>
+              </div>
+              <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">الوصف</p>
                 <p className="mt-2 whitespace-pre-line font-bold">{viewing.description || 'لا يوجد وصف.'}</p>
               </div>
@@ -379,6 +491,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
                   </a>
                 </div>
               )}
+            </div>
             </div>
           </div>
         </div>
