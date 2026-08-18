@@ -58,9 +58,14 @@ export function AppInstallButton() {
   const handleInstall = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
+    const choice = await deferredPrompt.userChoice;
     setDeferredPrompt(null);
-    setIsVisible(false);
+    if (choice.outcome === 'accepted') {
+      setIsVisible(false);
+      return;
+    }
+    setFallbackMode(true);
+    setIsVisible(true);
   };
 
   if (isStandalone || !isVisible) return null;

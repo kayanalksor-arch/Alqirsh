@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { BedDouble, MapPin, Maximize2, Search, X } from 'lucide-react';
+import { BedDouble, Download, MapPin, Maximize2, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 type Offer = {
@@ -27,6 +27,7 @@ const normalizeSearchText = (value: string) =>
 export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]; images: Record<string, string[]>; rental: boolean }) {
   const [selected, setSelected] = useState<Offer | null>(null);
   const [active, setActive] = useState(0);
+  const [fullImage, setFullImage] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [propertyType, setPropertyType] = useState('');
@@ -131,7 +132,9 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
             {images[selected.id]?.length ? (
               <div className="grid gap-2 bg-[var(--canvas)] p-2 md:grid-cols-[1.2fr_.8fr]">
                 {images[selected.id].map((src, index) => (
-                  <img key={src + index} src={src} alt={selected.title} className={index === active ? 'h-80 w-full rounded-2xl object-cover' : 'hidden'} />
+                  <button key={src + index} type="button" onClick={() => setFullImage(src)} className={index === active ? 'block w-full cursor-zoom-in' : 'hidden'} aria-label="فتح الصورة بالحجم الكامل">
+                    <img src={src} alt={selected.title} className="h-80 w-full rounded-2xl object-cover" />
+                  </button>
                 ))}
 
                 {images[selected.id].length > 1 && (
@@ -163,6 +166,18 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {fullImage && (
+        <div className="fixed inset-0 z-[70] grid place-items-center bg-black/90 p-4" role="dialog" aria-modal="true" aria-label="معاينة الصورة بالحجم الكامل">
+          <button type="button" onClick={() => setFullImage(null)} className="absolute right-4 top-4 grid size-11 place-items-center rounded-full bg-white/15 text-white" aria-label="إغلاق الصورة">
+            <X size={20} />
+          </button>
+          <img src={fullImage} alt="صورة العرض بالحجم الكامل" className="max-h-[82vh] max-w-full object-contain" />
+          <a href={fullImage} download className="absolute bottom-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-900">
+            <Download size={17} /> تنزيل الصورة
+          </a>
         </div>
       )}
     </>

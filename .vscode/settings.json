@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "supabase/migrations/*.sql": "plaintext"
+  },
+  "mssql.intelliSense.enableErrorChecking": false
+}

@@ -1,7 +1,7 @@
 ﻿'use client';
 /* eslint-disable @next/next/no-img-element */
 
-import { Edit3, ImagePlus, LoaderCircle, Plus, Search, Trash2, X } from 'lucide-react';
+import { Download, Edit3, ImagePlus, LoaderCircle, Plus, Search, Trash2, X } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -43,28 +43,18 @@ async function ensureManagerProfile(db: ReturnType<typeof createClient>) {
   const { data: { user }, error: userError } = await db.auth.getUser();
   if (userError || !user) throw new Error('يجب تسجيل الدخول أولاً.');
 
-  const { data: profile } = await db.from('profiles').select('role').eq('id', user.id).maybeSingle();
-  const normalizedEmail = user.email?.toLowerCase() ?? '';
-  const role = profile?.role ?? (normalizedEmail === 'ca.markode@gmail.com' ? 'admin' : 'member');
+  const { data: canManage, error: permissionError } = await db.rpc('is_platform_manager');
+  if (permissionError) throw permissionError;
+  if (!canManage) throw new Error('لا توجد صلاحية كافية لإدارة العروض.');
 
-  if (!profile || profile.role !== role) {
-    const { error: upsertError } = await db.from('profiles').upsert({
-      id: user.id,
-      email: user.email ?? null,
-      full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? '',
-      role,
-    }, { onConflict: 'id' });
-    if (upsertError) throw upsertError;
-  }
-
-  return { user, role };
+  return { user, role: 'property_manager' };
 }
 
 export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   const table = kind === 'sale' ? 'sale_offers' : 'rental_offers';
   const entity = kind === 'sale' ? 'عرض بيع' : 'عرض إيجار';
   const [offers, setOffers] = useState<Offer[]>([]);
-  const [images, setImages] = useState<Record<string, string>>({});
+  const [images, setImages] = useState<Record<string, string[]>>({});
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -76,6 +66,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [viewing, setViewing] = useState<Offer | null>(null);
   const [removing, setRemoving] = useState<Offer | null>(null);
+  const [fullImage, setFullImage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -102,11 +93,10 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
         setOffers((data ?? []) as Offer[]);
       }
 
-      const next: Record<string, string> = {};
+      const next: Record<string, string[]> = {};
       for (const image of media ?? []) {
-        if (!next[image.property_id]) {
-          next[image.property_id] = image.image_url || db.storage.from('listing-images').getPublicUrl(image.image_path).data.publicUrl;
-        }
+        const imageUrl = image.image_url || db.storage.from('listing-images').getPublicUrl(image.image_path).data.publicUrl;
+        next[image.property_id] = [...(next[image.property_id] ?? []), imageUrl];
       }
       setImages(next);
     } catch (error) {
@@ -116,7 +106,10 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
     setLoading(false);
   }, [kind, table]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   const locations = useMemo(() => [...new Set(offers.map((offer) => offer.location).filter(Boolean))] as string[], [offers]);
   const statuses = useMemo(() => [...new Set(offers.map((offer) => offer.status).filter(Boolean))] as string[], [offers]);
@@ -309,7 +302,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
           {shown.map((offer) => (
             <article key={offer.id} className="panel flex h-full flex-col overflow-hidden rounded-2xl">
               <div className="grid h-40 place-items-center bg-[var(--canvas)]">
-                {images[offer.id] ? <img src={images[offer.id]} alt={offer.title} className="h-full w-full object-cover" /> : <ImagePlus className="text-[var(--subtle)]" size={28} />}
+                {images[offer.id]?.[0] ? <img src={images[offer.id][0]} alt={offer.title} className="h-full w-full object-cover" /> : <ImagePlus className="text-[var(--subtle)]" size={28} />}
               </div>
 
               <div className="flex flex-1 flex-col p-5">
@@ -446,6 +439,18 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
               <button type="button" onClick={() => setViewing(null)} className="grid size-10 place-items-center rounded-full border border-[var(--line)]"><X size={18} /></button>
             </div>
 
+            {images[viewing.id]?.length ? (
+              <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {images[viewing.id].map((src, index) => (
+                  <button key={src + index} type="button" onClick={() => setFullImage(src)} className="h-36 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--canvas)] sm:h-44" aria-label={`فتح صورة العرض ${index + 1} بالحجم الكامل`}>
+                    <img src={src} alt={`${viewing.title} ${index + 1}`} className="h-full w-full object-cover transition hover:scale-105" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-5 grid h-36 place-items-center rounded-xl bg-[var(--canvas)] text-sm text-[var(--muted)]">لا توجد صور</div>
+            )}
+
             <div className="mt-5 space-y-3">
               <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">الحالة</p>
@@ -494,6 +499,18 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
             </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {fullImage && (
+        <div className="fixed inset-0 z-[70] grid place-items-center bg-black/90 p-4" role="dialog" aria-modal="true" aria-label="معاينة الصورة بالحجم الكامل">
+          <button type="button" onClick={() => setFullImage(null)} className="absolute right-4 top-4 grid size-11 place-items-center rounded-full bg-white/15 text-white" aria-label="إغلاق الصورة">
+            <X size={20} />
+          </button>
+          <img src={fullImage} alt="صورة العرض بالحجم الكامل" className="max-h-[82vh] max-w-full object-contain" />
+          <a href={fullImage} download className="absolute bottom-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-900">
+            <Download size={17} /> تنزيل الصورة
+          </a>
         </div>
       )}
 

@@ -1,4 +1,4 @@
-create table public.partners (
+create table if not exists public.partners (
   id uuid default gen_random_uuid() primary key,
   name text not null,
   logo_url text,
@@ -11,6 +11,9 @@ create table public.partners (
 );
 
 alter table public.partners enable row level security;
+
+drop policy if exists "Anyone can view active partners" on public.partners;
+drop policy if exists "Admins can manage partners" on public.partners;
 
 create policy "Anyone can view active partners"
   on public.partners for select
