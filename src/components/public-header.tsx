@@ -4,7 +4,7 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AppInstallButton } from '@/components/app-install-button';
 
-const links = [['/', 'الرئيسية'], ['/sales', 'عروض البيع'], ['/rentals', 'عروض الإيجار'], ['/contact', 'تواصل معنا']] as const;
+const links = [['/', 'الرئيسية'], ['/sales', 'عروض البيع'], ['/rentals', 'عروض الإيجار'], ['/partners', 'شركاء النجاح'], ['/contact', 'تواصل معنا']] as const;
 
 export async function PublicHeader() {
   let authenticated = false;

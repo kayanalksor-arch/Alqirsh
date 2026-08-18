@@ -27,14 +27,27 @@ export async function saveManagedEntity(table: string, id: string | null, payloa
     if (key.endsWith('_id') && value !== null && typeof value === 'string' && !uuidPattern.test(value)) {
       throw new Error(`قيمة ${key} يجب اختيارها من القائمة المسجلة.`);
     }
+    // Validate date fields
+    if (key.endsWith('_date') && value !== null && typeof value === 'string') {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        throw new Error(`قيمة ${key} غير صحيحة. يجب أن تكون بصيغة YYYY-MM-DD.`);
+      }
+    }
   }
   if (table === 'requests' && !id) {
     const { data: { user } } = await db.auth.getUser();
     values.created_by = user!.id;
   }
-  const query = id ? db.from(table).update(values).eq('id', id) : db.from(table).insert(values);
-  const { error } = await query;
-  if (error) throw new Error(error.message);
+  try {
+    const query = id ? db.from(table).update(values).eq('id', id) : db.from(table).insert(values);
+    const { error } = await query;
+    if (error) throw new Error(error.message);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('invalid input syntax for type date')) {
+      throw new Error('قيمة التاريخ المدخلة غير صحيحة. تأكد من صيغة التاريخ YYYY-MM-DD.');
+    }
+    throw error;
+  }
   revalidatePath('/dashboard/property-management', 'layout');
   revalidatePath('/dashboard/requests');
 }

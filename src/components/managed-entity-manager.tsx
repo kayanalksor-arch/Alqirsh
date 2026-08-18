@@ -1,5 +1,5 @@
 ﻿'use client';
-import { Eye, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { Eye, Pencil, Plus, Printer, Search, Trash2, X } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { deleteManagedEntity, saveManagedEntity } from '@/app/actions/management';
@@ -57,6 +57,64 @@ export function ManagedEntityManager({ config }: { config: Config }) {
     return field.options?.find((option) => option[0] === String(value))?.[1] ?? String(value);
   }
 
+  function printCard(row: Row) {
+    const printContent = `
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${config.title}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; background: white; }
+          .container { max-width: 800px; margin: 0 auto; }
+          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #0d5649; padding-bottom: 10px; }
+          .title { color: #0d5649; font-size: 24px; font-weight: bold; margin: 0; }
+          .subtitle { color: #666; font-size: 14px; margin: 5px 0 0 0; }
+          .content { background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
+          .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+          .row:last-child { border-bottom: none; }
+          .label { font-weight: bold; color: #0d5649; font-size: 14px; }
+          .value { color: #333; font-size: 14px; }
+          .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #999; }
+          @media print {
+            body { margin: 0; }
+            .header { border-bottom: 2px solid #0d5649; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <p class="title">${config.title}</p>
+            <p class="subtitle">${config.singular}</p>
+          </div>
+          <div class="content">
+            ${config.fields.map((field) => `
+              <div class="row">
+                <span class="label">${field.label}</span>
+                <span class="value">${text(field, row[field.key])}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div class="footer">
+            <p>تم الطباعة: ${new Date().toLocaleString('ar-SA')}</p>
+          </div>
+        </div>
+        <script>
+          window.print();
+          window.onafterprint = function() { window.close(); }
+        </script>
+      </body>
+      </html>
+    `;
+    const printWindow = window.open('', '', 'width=800,height=600');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+    }
+  }
+
   async function save(event: FormEvent) {
     event.preventDefault();
     if (!form) return;
@@ -65,6 +123,24 @@ export function ManagedEntityManager({ config }: { config: Config }) {
     if (missing.length) {
       setMsg(`الحقول المطلوبة ناقصة: ${missing.map((field) => field.label).join(', ')}`);
       return;
+    }
+
+    // Validate date fields
+    for (const field of config.fields) {
+      if (field.type === 'date' && form[field.key] && form[field.key].trim() !== '') {
+        const dateValue = form[field.key].trim();
+        // Check if it's a valid date format (YYYY-MM-DD)
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+          setMsg(`قيمة ${field.label} غير صحيحة. يجب أن تكون بصيغة تاريخ صحيحة.`);
+          return;
+        }
+        // Try to parse the date to ensure it's valid
+        const parsed = new Date(dateValue);
+        if (isNaN(parsed.getTime())) {
+          setMsg(`قيمة ${field.label} غير صحيحة. التاريخ المدخل غير صالح.`);
+          return;
+        }
+      }
     }
 
     try {
@@ -113,6 +189,9 @@ export function ManagedEntityManager({ config }: { config: Config }) {
             <div className="mt-4 flex gap-2">
               <button type="button" onClick={() => { setView(row); setViewOpen(true); }} className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm font-bold">عرض</button>
               <button type="button" onClick={() => open(row)} className="rounded-lg bg-[var(--brand)] px-3 py-2 text-sm font-bold text-white">تعديل</button>
+              <button type="button" onClick={() => printCard(row)} className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm font-bold" title="طباعة">
+                <Printer size={16} />
+              </button>
               <button type="button" onClick={() => { setDel(row); setDeleteOpen(true); }} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-bold text-red-600">حذف</button>
             </div>
           </article>
@@ -170,8 +249,12 @@ export function ManagedEntityManager({ config }: { config: Config }) {
                       <option value="">اختر {field.label}</option>
                       {field.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                     </select>
+                  ) : field.type === 'date' ? (
+                    <input type="date" value={form?.[field.key] ?? ''} onChange={(event) => setForm((prev) => prev ? { ...prev, [field.key]: event.target.value } : prev)} className="min-h-11 rounded-xl border border-[var(--line)] bg-transparent px-3 outline-none focus:ring-2 focus:ring-emerald-500" />
+                  ) : field.type === 'number' ? (
+                    <input type="number" value={form?.[field.key] ?? ''} onChange={(event) => setForm((prev) => prev ? { ...prev, [field.key]: event.target.value } : prev)} className="min-h-11 rounded-xl border border-[var(--line)] bg-transparent px-3 outline-none focus:ring-2 focus:ring-emerald-500" />
                   ) : (
-                    <input value={form?.[field.key] ?? ''} onChange={(event) => setForm((prev) => prev ? { ...prev, [field.key]: event.target.value } : prev)} className="min-h-11 rounded-xl border border-[var(--line)] bg-transparent px-3 outline-none focus:ring-2 focus:ring-emerald-500" />
+                    <input type="text" value={form?.[field.key] ?? ''} onChange={(event) => setForm((prev) => prev ? { ...prev, [field.key]: event.target.value } : prev)} className="min-h-11 rounded-xl border border-[var(--line)] bg-transparent px-3 outline-none focus:ring-2 focus:ring-emerald-500" />
                   )}
                 </label>
               ))}

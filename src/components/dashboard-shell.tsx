@@ -15,6 +15,7 @@ const links = [
   ['/dashboard/property-management', 'إدارة الأملاك', Wrench],
   ['/dashboard/requests', 'الطلبات', ClipboardList],
   ['/dashboard/users', 'المستخدمون', Users],
+  ['/dashboard/partners', 'شركاء النجاح', Users],
   ['/dashboard/settings', 'الإعدادات', Settings],
   ['/dashboard/profile', 'الملف الشخصي', UserRound],
 ] as const;
