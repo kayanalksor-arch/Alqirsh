@@ -1,4 +1,4 @@
-const LOGO_URL = '/brand/alqirsh-logoo.jpg';
+const LOGO_URL = '/brand/alqirsh-logoo.png';
 
 function createSeed(file: File) {
   return `${file.name}:${file.size}:${file.lastModified}`.split('').reduce((seed, character) => ((seed * 31) + character.charCodeAt(0)) >>> 0, 7);

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from 'next/image';
-import { Download, X } from 'lucide-react';
+import { Download, Share, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 type BeforeInstallPromptEvent = Event & {
@@ -11,61 +11,63 @@ type BeforeInstallPromptEvent = Event & {
 
 export function AppInstallButton() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
-  const [fallbackMode, setFallbackMode] = useState(false);
+  const [isIos, setIsIos] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
 
   useEffect(() => {
-    const updateStandalone = () => {
-      const standalone = window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !standalone;
+    const dismissed = localStorage.getItem('alqirsh-install-dismissed') === '1';
+    const stateTimer = window.setTimeout(() => {
       setIsStandalone(standalone);
-      return standalone;
-    };
+      setIsIos(ios);
+    }, 0);
 
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setDeferredPrompt(event as BeforeInstallPromptEvent);
-      setFallbackMode(false);
-      setIsVisible(true);
+      if (!dismissed && !standalone) setIsVisible(true);
     };
 
     const onAppInstalled = () => {
       setDeferredPrompt(null);
       setIsVisible(false);
-      setFallbackMode(false);
       setIsStandalone(true);
     };
-
-    updateStandalone();
 
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
     window.addEventListener('appinstalled', onAppInstalled);
 
     const timer = window.setTimeout(() => {
-      if (!updateStandalone() && !deferredPrompt) {
-        setFallbackMode(true);
-        setIsVisible(true);
-      }
+      if (ios && !dismissed) setIsVisible(true);
     }, 1800);
 
     return () => {
+      window.clearTimeout(stateTimer);
       window.clearTimeout(timer);
       window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
       window.removeEventListener('appinstalled', onAppInstalled);
     };
-  }, [deferredPrompt]);
+  }, []);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
-    if (choice.outcome === 'accepted') {
-      setIsVisible(false);
-      return;
+    setIsInstalling(true);
+    try {
+      await deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      setDeferredPrompt(null);
+      if (choice.outcome === 'accepted') setIsVisible(false);
+    } finally {
+      setIsInstalling(false);
     }
-    setFallbackMode(true);
-    setIsVisible(true);
+  };
+
+  const dismiss = () => {
+    localStorage.setItem('alqirsh-install-dismissed', '1');
+    setIsVisible(false);
   };
 
   if (isStandalone || !isVisible) return null;
@@ -74,18 +76,22 @@ export function AppInstallButton() {
     <div className="fixed bottom-4 left-4 z-[60] w-[min(92vw,360px)] rounded-[1.5rem] border border-[var(--border)] bg-[var(--popover)] p-3 shadow-[0_18px_50px_rgba(15,23,42,0.2)] backdrop-blur-sm">
       <div className="flex items-start gap-3">
         <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--canvas)]">
-          <Image src="/brand/alqirsh-logo.jpg" alt="القِرش" width={52} height={52} className="size-full object-cover" />
+          <Image src="/brand/alqirsh-logoo.png" alt="القِرش" width={52} height={52} className="size-full object-contain" />
         </div>
 
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold tracking-[0.2em] text-[var(--muted)]">تطبيق القِرش</p>
-          <h3 className="mt-1 text-base font-black">{fallbackMode ? 'تثبيت التطبيق' : 'تنزيل التطبيق'}</h3>
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            {fallbackMode ? 'استخدم قائمة المتصفح ثم أضف إلى الشاشة الرئيسية.' : 'أضف التطبيق للوصول السريع للاستخدام.'}
-          </p>
+          <h3 className="mt-1 text-base font-black">تثبيت التطبيق</h3>
+          {isIos ? (
+            <ol className="mt-2 list-inside list-decimal space-y-1 text-xs leading-5 text-[var(--muted)]">
+              <li>اضغط زر مشاركة.</li>
+              <li>اختر إضافة إلى الشاشة الرئيسية.</li>
+              <li>اضغط إضافة.</li>
+            </ol>
+          ) : <p className="mt-1 text-xs text-[var(--muted)]">أضف التطبيق للوصول السريع للاستخدام.</p>}
         </div>
 
-        <button type="button" aria-label="إغلاق" onClick={() => setIsVisible(false)} className="grid size-8 place-items-center rounded-full border border-[var(--line)] text-[var(--muted)]">
+        <button type="button" aria-label="إغلاق" onClick={dismiss} className="grid size-8 place-items-center rounded-full border border-[var(--line)] text-[var(--muted)]">
           <X size={15} />
         </button>
       </div>
@@ -93,12 +99,13 @@ export function AppInstallButton() {
       <div className="mt-3 flex gap-2">
         <button
           type="button"
-          onClick={fallbackMode ? () => setIsVisible(false) : handleInstall}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-3 py-2.5 text-sm font-bold text-white"
+          onClick={isIos ? dismiss : handleInstall}
+          disabled={isInstalling}
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-3 py-2.5 text-sm font-bold text-white disabled:opacity-60"
         >
-          <Download size={15} /> {fallbackMode ? 'تنزيل التطبيق' : 'تنزيل التطبيق'}
+          {isIos ? <Share size={15} /> : <Download size={15} />} {isInstalling ? 'جاري التثبيت...' : isIos ? 'إغلاق' : 'تثبيت التطبيق'}
         </button>
-        <button type="button" onClick={() => setIsVisible(false)} className="rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm font-bold text-[var(--muted)]">
+        <button type="button" onClick={dismiss} className="rounded-xl border border-[var(--line)] px-3 py-2.5 text-sm font-bold text-[var(--muted)]">
           لاحقًا
         </button>
       </div>
