@@ -76,7 +76,7 @@ export function AppInstallButton() {
     <div className="fixed bottom-4 left-4 z-[60] w-[min(92vw,360px)] rounded-[1.5rem] border border-[var(--border)] bg-[var(--popover)] p-3 shadow-[0_18px_50px_rgba(15,23,42,0.2)] backdrop-blur-sm">
       <div className="flex items-start gap-3">
         <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--canvas)]">
-          <Image src="/brand/alqirsh-logoo.png" alt="القِرش" width={52} height={52} className="size-full object-contain" />
+          <Image src="/brand/alqirsh-icon.jpg" alt="القِرش" width={52} height={52} className="size-full object-cover" />
         </div>
 
         <div className="min-w-0 flex-1">
