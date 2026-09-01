@@ -1,4 +1,5 @@
 ﻿'use client';
+/* eslint-disable @next/next/no-img-element */
 
 import { BedDouble, Download, MapPin, Maximize2, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -23,6 +24,8 @@ const normalizeSearchText = (value: string) =>
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+  const formatNumber = (value: number | null) => value === null ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
 
 export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]; images: Record<string, string[]>; rental: boolean }) {
   const [selected, setSelected] = useState<Offer | null>(null);
@@ -108,12 +111,12 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
                 <div className="p-3 sm:p-5">
                   <p className="text-[10px] font-bold text-[var(--brand)] sm:text-xs">{offer.property_type ?? (rental ? 'عقار للإيجار' : 'عقار للبيع')}</p>
                   <h2 className="mt-2 text-base font-black sm:text-xl">{offer.title}</h2>
-                  <p className="mt-2 text-base font-black text-[var(--brand)] sm:mt-3 sm:text-xl">{offer.price ?? '—'} ج.م{rental ? ' شهرياً' : ''}</p>
+                  <p className="mt-2 text-base font-black text-[var(--brand)] sm:mt-3 sm:text-xl">{formatNumber(offer.price)} ج.م{rental ? ' شهرياً' : ''}</p>
                   <p className="mt-2 flex items-center gap-1 text-[10px] text-[var(--muted)] sm:mt-3 sm:gap-2 sm:text-sm"><MapPin size={14} className="shrink-0 sm:size-4" />{offer.location ?? 'الموقع غير محدد'}</p>
                   {offer.address && <p className="mt-2 text-[10px] text-[var(--muted)] sm:text-sm">{offer.address}</p>}
                   <div className="mt-3 flex items-center justify-between gap-2 text-[10px] text-[var(--muted)] sm:mt-4 sm:text-sm">
-                    <span>المساحة: {offer.area ?? '—'} م²</span>
-                    <span>{offer.bedrooms ?? '—'} غرف</span>
+                    <span>المساحة: {formatNumber(offer.area)} م²</span>
+                    <span>{formatNumber(offer.bedrooms)} غرف</span>
                   </div>
                 </div>
               </button>
@@ -154,15 +157,15 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
             <div className="p-6 md:p-8">
               <p className="text-xs font-bold text-[var(--brand)]">{selected.property_type ?? (rental ? 'عقار للإيجار' : 'عقار للبيع')}</p>
               <h2 className="mt-2 text-2xl font-black">{selected.title}</h2>
-              <p className="mt-3 text-2xl font-black text-[var(--brand)]">{selected.price ?? '—'} ج.م{rental ? ' شهرياً' : ''}</p>
+              <p className="mt-3 text-2xl font-black text-[var(--brand)]">{formatNumber(selected.price)} ج.م{rental ? ' شهرياً' : ''}</p>
 
               {selected.description && <p className="mt-5 leading-7 text-[var(--muted)]">{selected.description}</p>}
 
               <div className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
                 <span className="flex gap-2"><MapPin size={17} />{selected.location ?? 'الموقع غير محدد'}{selected.address ? ` — ${selected.address}` : ''}</span>
-                <span className="flex gap-2"><Maximize2 size={17} />{selected.area ?? '—'} م²</span>
-                <span className="flex gap-2"><BedDouble size={17} />{selected.bedrooms ?? '—'} غرف نوم</span>
-                <span>الحمامات: {selected.bathrooms ?? '—'}</span>
+                <span className="flex gap-2"><Maximize2 size={17} />{formatNumber(selected.area)} م²</span>
+                <span className="flex gap-2"><BedDouble size={17} />{formatNumber(selected.bedrooms)} غرف نوم</span>
+                <span>الحمامات: {formatNumber(selected.bathrooms)}</span>
               </div>
             </div>
           </div>

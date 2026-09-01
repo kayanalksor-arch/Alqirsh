@@ -1,6 +1,6 @@
 ﻿'use client';
-import { Eye, Pencil, Plus, Printer, Search, Trash2, X } from 'lucide-react';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Plus, Printer, Search, X } from 'lucide-react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { deleteManagedEntity, saveManagedEntity } from '@/app/actions/management';
 
@@ -28,13 +28,16 @@ export function ManagedEntityManager({ config }: { config: Config }) {
   const [msg, setMsg] = useState('');
   const [query, setQuery] = useState('');
 
-  async function load() {
+  const load = useCallback(async () => {
     const { data, error } = await createClient().from(config.table).select('*').order('created_at', { ascending: false });
     if (error) setMsg(error.message);
     else setRows((data ?? []) as Row[]);
-  }
+  }, [config.table]);
 
-  useEffect(() => { void load(); }, [config.table]);
+  useEffect(() => {
+    const handle = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(handle);
+  }, [load]);
 
   const filteredRows = useMemo(() => {
     const searchText = normalizeText(query);
@@ -160,8 +163,8 @@ export function ManagedEntityManager({ config }: { config: Config }) {
   }
 
   return (
-    <main className="p-5 lg:p-9">
-      <div className="panel flex flex-col gap-3 rounded-2xl p-4 md:flex-row md:items-center md:justify-between">
+    <main className="dashboard-content">
+      <div className="dashboard-controls panel rounded-2xl p-4 md:flex md:items-center md:justify-between">
         <label className="flex min-h-12 flex-1 items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3">
           <Search size={18} className="text-[var(--muted)]" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} className="w-full bg-transparent outline-none" placeholder="ابحث بالاسم أو الوصف أو التفاصيل" />
@@ -207,7 +210,7 @@ export function ManagedEntityManager({ config }: { config: Config }) {
 
       {viewOpen && view && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 p-4">
-          <div className="mx-auto mt-10 w-full max-w-2xl rounded-[1.75rem] bg-[var(--surface)] p-6">
+          <div className="modal-frame mx-auto mt-10 rounded-[1.75rem] bg-[var(--surface)] p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="eyebrow">تفاصيل</p>
@@ -229,7 +232,7 @@ export function ManagedEntityManager({ config }: { config: Config }) {
 
       {editorOpen && form && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 p-4">
-          <div className="mx-auto mt-10 w-full max-w-2xl rounded-[1.75rem] bg-[var(--surface)] p-6">
+          <div className="modal-frame mx-auto mt-10 rounded-[1.75rem] bg-[var(--surface)] p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="eyebrow">{edit?.id ? 'تعديل' : 'إضافة'} {config.singular}</p>

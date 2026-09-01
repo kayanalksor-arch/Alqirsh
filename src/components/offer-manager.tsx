@@ -4,6 +4,7 @@
 import { Download, Edit3, ImagePlus, LoaderCircle, Plus, Search, Trash2, X } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { addBrandWatermark } from '@/lib/image-watermark';
 
 type Offer = {
   id: string;
@@ -114,7 +115,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   const locations = useMemo(() => [...new Set(offers.map((offer) => offer.location).filter(Boolean))] as string[], [offers]);
   const statuses = useMemo(() => [...new Set(offers.map((offer) => offer.status).filter(Boolean))] as string[], [offers]);
   const normalizeText = (value: string) => value.toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
-  const formatPrice = (price: number | null) => price ? new Intl.NumberFormat('ar-EG', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(price) : '—';
+  const formatNumber = (value: number | null) => value === null ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
 
   const shown = useMemo(
     () =>
@@ -165,7 +166,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
 
   async function uploadFiles(db: ReturnType<typeof createClient>, offerId: string) {
     for (let index = 0; index < pendingFiles.length; index += 1) {
-      const file = pendingFiles[index];
+      const file = await addBrandWatermark(pendingFiles[index]);
       const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const path = `${kind}/${offerId}/${crypto.randomUUID()}.${extension}`;
       const { error: uploadError } = await db.storage.from('listing-images').upload(path, file, { contentType: file.type, upsert: false });
@@ -266,8 +267,8 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   }
 
   return (
-    <main className="p-5 lg:p-9">
-      <div className="panel grid gap-3 rounded-2xl p-4 md:grid-cols-[1fr_220px_220px_auto]">
+    <main className="dashboard-content">
+      <div className="dashboard-controls panel rounded-2xl p-4">
         <label className="flex min-h-12 items-center gap-2 rounded-xl border border-[var(--line)] px-3">
           <Search size={18} />
           <input value={query} onChange={(event) => setQuery(event.target.value)} className="w-full bg-transparent outline-none" placeholder="ابحث بالعنوان أو الموقع أو النوع" />
@@ -309,7 +310,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
                 <p className="text-xs font-bold text-[var(--brand)]">{offer.status}</p>
                 <div className="mt-2 flex items-start justify-between gap-3">
                   <h2 className="flex-1 font-black">{offer.title}</h2>
-                  <strong className="shrink-0 text-[var(--brand)]">{formatPrice(offer.price)} ج.م</strong>
+                  <strong className="shrink-0 text-[var(--brand)]">{formatNumber(offer.price)} ج.م</strong>
                 </div>
                 <p className="mt-2 text-sm text-[var(--muted)]">{offer.location ?? 'الموقع غير محدد'} · {offer.property_type ?? 'نوع غير محدد'}</p>
                 <div className="mt-auto flex justify-between gap-2 pt-4">
@@ -326,7 +327,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
       {form && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 p-2 sm:p-4">
           <div className="mx-auto grid min-h-full w-full max-w-3xl place-items-center py-2 sm:py-4">
-            <div className="max-h-[82vh] w-full overflow-y-auto rounded-[1.5rem] bg-[var(--surface)] p-4 shadow-2xl sm:max-h-[90vh] sm:rounded-[1.75rem] sm:p-5">
+            <div className="modal-frame rounded-[1.5rem] bg-[var(--surface)] p-4 shadow-2xl sm:rounded-[1.75rem] sm:p-5">
               <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="eyebrow">{editing ? 'تعديل' : 'إضافة'} {entity}</p>
@@ -458,7 +459,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
               </div>
               <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">السعر</p>
-                <p className="mt-2 font-bold">{formatPrice(viewing.price)} ج.م</p>
+                <p className="mt-2 font-bold">{formatNumber(viewing.price)} ج.م</p>
               </div>
               <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">الموقع</p>
@@ -474,11 +475,11 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
               </div>
               <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">المساحة</p>
-                <p className="mt-2 font-bold">{viewing.area ?? '—'}</p>
+                <p className="mt-2 font-bold">{formatNumber(viewing.area)} م²</p>
               </div>
               <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">غرف النوم / الحمامات</p>
-                <p className="mt-2 font-bold">{viewing.bedrooms ?? '—'} / {viewing.bathrooms ?? '—'}</p>
+                <p className="mt-2 font-bold">{formatNumber(viewing.bedrooms)} / {formatNumber(viewing.bathrooms)}</p>
               </div>
               <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">واجهة العرض</p>

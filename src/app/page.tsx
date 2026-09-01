@@ -1,11 +1,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Building2, KeyRound, Phone, Users } from 'lucide-react';
+import { ArrowLeft, Building2, CarFront, Phone, Users } from 'lucide-react';
 import { PublicHeader } from '@/components/public-header';
 
 const actions = [
-  ['/sales', 'عروض البيع', 'استعرض العقارات المعروضة للبيع بوضوح.', Building2],
-  ['/rentals', 'عروض الإيجار', 'اكتشف الخيارات المتاحة للإيجار.', KeyRound],
+  ['/properties', 'العقارات', 'استعرض العقارات المتاحة للبيع والإيجار.', Building2],
+  ['/cars', 'السيارات', 'اكتشف أحدث السيارات المعروضة في السوق.', CarFront],
   ['/contact', 'تواصل معنا', 'تواصل مباشرة مع فريق القِرش.', Phone],
 ] as const;
 
@@ -13,7 +13,7 @@ export default function Home() {
   return (
     <main className="app-shell min-h-screen">
       <PublicHeader />
-      <section className="mx-auto max-w-6xl px-5 py-10 lg:py-16">
+      <section className="page-container">
         <div className="overflow-hidden rounded-[2rem] border border-emerald-400/20 bg-[linear-gradient(135deg,#0d5649_0%,#0a463d_100%)] p-4 shadow-[0_30px_80px_rgba(6,60,46,0.35)] sm:p-6 lg:p-7">
           <div className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
             <div className="rounded-[1.75rem] border border-emerald-300/25 bg-emerald-950/30 p-5 backdrop-blur-sm">
@@ -59,17 +59,17 @@ export default function Home() {
                 القِرش
               </div>
 
-              <h1 className="max-w-xl text-3xl font-black leading-tight text-white sm:text-4xl lg:text-5xl">ابحث عن عقارك المناسب بسهولة.</h1>
+              <h1 className="max-w-xl text-3xl font-black leading-tight text-white sm:text-4xl lg:text-5xl">القِرش — مكانك لاكتشاف العقارات والسيارات.</h1>
               <p className="mt-5 max-w-xl text-base leading-8 text-emerald-50">
-                منصة القِرش تعرض العقارات المتاحة للبيع والإيجار، وتوفر مساحة داخلية احترافية لإدارة العقارات والعملاء والشركاء.
+                منصة القِرش تجمع بين أفضل العقارات والسيارات المعروضة للبيع والإيجار في تجربة احترافية وسريعة ومريحة للمستخدمين.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/sales" className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-emerald-300/40 bg-emerald-600/20 px-5 font-bold text-white transition hover:bg-emerald-600/30">
-                  استعرض عروض البيع <ArrowLeft size={18} />
+                <Link href="/properties" className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-emerald-300/40 bg-emerald-600/20 px-5 font-bold text-white transition hover:bg-emerald-600/30">
+                  عقارات <ArrowLeft size={18} />
                 </Link>
-                <Link href="/rentals" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-emerald-300/40 bg-emerald-600/20 px-5 font-bold text-white transition hover:bg-emerald-600/30">
-                  عروض الإيجار
+                <Link href="/cars" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-emerald-300/40 bg-emerald-600/20 px-5 font-bold text-white transition hover:bg-emerald-600/30">
+                  سيارات
                 </Link>
               </div>
 

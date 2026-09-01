@@ -1,4 +1,5 @@
-import { PublicHeader } from '@/components/public-header';
-import { PublicOfferGallery } from '@/components/public-offer-gallery';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
-export default async function Sales(){const db=isSupabaseConfigured?await createClient():null;const {data:offers,error}=db?await db.from('sale_offers').select('id,title,description,price,location,address,area,bedrooms,bathrooms,property_type').eq('status','active').order('created_at',{ascending:false}).limit(24):{data:[],error:null};const {data:media}=db?await db.from('property_images').select('property_id,image_url,image_path,sort_order').eq('property_type','sale').order('sort_order'): {data:[]};const images:Record<string,string[]>={};for(const item of media??[]){const url=item.image_url||db!.storage.from('listing-images').getPublicUrl(item.image_path).data.publicUrl;(images[item.property_id]??=[]).push(url)}return <main className="app-shell min-h-screen"><PublicHeader/><section className="mx-auto max-w-6xl px-5 py-10"><p className="eyebrow">العقارات المتاحة</p><h1 className="mt-2 text-3xl font-black">عروض البيع</h1><p className="mt-2 text-sm text-[var(--muted)]">اضغط على أي عرض لمشاهدة التفاصيل والصور.</p>{error?<p className="panel mt-8 rounded-2xl p-6">تعذر تحميل العروض: {error.message}</p>:!offers?.length?<section className="panel mt-8 rounded-2xl p-10 text-center">لا توجد عروض بيع حالياً.</section>:<PublicOfferGallery offers={offers} images={images} rental={false}/>}</section></main>}
+import { redirect } from 'next/navigation';
+
+export default function SalesPage() {
+	redirect('/properties/sale');
+}

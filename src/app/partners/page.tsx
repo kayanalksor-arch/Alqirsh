@@ -11,7 +11,7 @@ export default async function PartnersPage() {
   return (
     <main className="app-shell min-h-screen">
       <PublicHeader />
-      <section className="mx-auto max-w-6xl px-5 py-10">
+      <section className="page-container">
         <p className="eyebrow">شركاء النجاح</p>
         <h1 className="mt-2 text-3xl font-black">تعرف على شركائنا الموثوقين</h1>
         <p className="mt-2 text-sm text-[var(--muted)]">اضغط على أي شريك لمشاهدة التفاصيل الكاملة.</p>
