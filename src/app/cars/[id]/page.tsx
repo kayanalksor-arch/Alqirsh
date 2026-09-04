@@ -3,6 +3,7 @@ import { ArrowLeft, CalendarDays, CarFront, MapPin, Phone, Tag, Users } from 'lu
 import { PublicHeader } from '@/components/public-header';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { ImageLightbox } from '@/components/image-lightbox';
+import { formatEgp } from '@/lib/listings';
 
 export default async function CarDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -49,7 +50,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
 
           <aside className="panel rounded-[2rem] p-5">
             <p className="text-xs font-bold text-[var(--brand)]">{listing.listing_type === 'rent' ? 'إيجار' : 'بيع'}</p>
-            <h2 className="mt-3 text-2xl font-black">{Number(price).toLocaleString('ar-EG')} ر.س</h2>
+            <h2 className="mt-3 text-2xl font-black">{formatEgp(price)}</h2>
             <p className="mt-2 text-sm text-[var(--muted)]">{listing.location ?? 'الموقع غير محدد'}</p>
 
             <div className="mt-6 space-y-3 text-sm">
@@ -86,7 +87,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span className="inline-flex items-center gap-2"><MapPin size={16} /> الموقع</span><b>{listing.location ?? '—'}</b></div>
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span className="inline-flex items-center gap-2"><CarFront size={16} /> حالة السيارة</span><b>{listing.condition ?? 'مستعملة'}</b></div>
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span className="inline-flex items-center gap-2"><Users size={16} /> التواصل</span><b>{listing.contact_name ?? 'غير محدد'}</b></div>
-              <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span className="inline-flex items-center gap-2"><Tag size={16} /> السعر</span><b>{Number(price).toLocaleString('ar-EG')} ر.س</b></div>
+              <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span className="inline-flex items-center gap-2"><Tag size={16} /> السعر</span><b>{formatEgp(price)}</b></div>
             </div>
           </aside>
         </div>

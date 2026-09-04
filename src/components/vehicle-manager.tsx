@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CarFront, Edit3, Plus, Search, Trash2, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { addBrandWatermark } from '@/lib/image-watermark';
+import { formatEgp } from '@/lib/listings';
 
 type Vehicle = {
   id: string;
@@ -361,7 +362,7 @@ export function VehicleManager() {
                 <p className="mt-1 font-bold text-sm truncate">{v.title}</p>
                 <p className="mt-0.5 text-[11px] text-[var(--muted)]">{v.location || '—'}</p>
                 <p className="mt-2 text-base font-black text-[var(--brand)]">
-                  {Number(v.price || v.daily_price || 0).toLocaleString('ar-EG')} ر.س
+                  {formatEgp(v.price ?? v.daily_price)}
                 </p>
                 <div className="mt-2 flex gap-1">
                   <button
@@ -661,7 +662,7 @@ export function VehicleManager() {
               <div><strong>الماركة:</strong> {viewing.brand || '—'}</div>
               <div><strong>الموديل:</strong> {viewing.model || '—'}</div>
               <div><strong>السنة:</strong> {viewing.year || '—'}</div>
-              <div><strong>السعر:</strong> {Number(viewing.price || viewing.daily_price || 0).toLocaleString('ar-EG')} ر.س</div>
+              <div><strong>السعر:</strong> {formatEgp(viewing.price ?? viewing.daily_price)}</div>
               <div><strong>الموقع:</strong> {viewing.location || '—'}</div>
               {viewing.description && <div><strong>الوصف:</strong> {viewing.description}</div>}
             </div>

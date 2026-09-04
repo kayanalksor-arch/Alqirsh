@@ -5,6 +5,7 @@ import { Download, Edit3, ImagePlus, LoaderCircle, Plus, Search, Trash2, X } fro
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { addBrandWatermark } from '@/lib/image-watermark';
+import { formatEgp } from '@/lib/listings';
 
 type Property = {
   id: string;
@@ -452,7 +453,7 @@ export function PropertyManager() {
                           {p.kind === 'sale' ? 'بيع' : 'إيجار'}
                         </span>
                       </td>
-                      <td className="p-3">{Number(p.price || 0).toLocaleString('ar-EG')}</td>
+                      <td className="p-3">{formatEgp(p.price)}</td>
                       <td className="p-3 text-[var(--muted)]">{p.location || '—'}</td>
                       <td className="p-3">
                         <span
@@ -754,7 +755,7 @@ export function PropertyManager() {
                 <div>
                   <p className="text-[var(--muted)]">السعر</p>
                   <p className="font-bold">
-                    {Number(viewing.price || 0).toLocaleString('ar-EG')}
+                    {formatEgp(viewing.price)}
                   </p>
                 </div>
                 <div>

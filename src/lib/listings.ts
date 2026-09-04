@@ -33,8 +33,15 @@ export function normalizeSearchText(value: string) {
     .trim();
 }
 
+/** A single, defensive currency formatter for every customer-facing price. */
+export function formatEgp(value: number | string | null | undefined, suffix = 'ج.م') {
+  const amount = typeof value === 'string' ? Number(value) : value;
+  if (amount === null || amount === undefined || !Number.isFinite(amount)) return 'السعر غير متاح';
+  return `${new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 0 }).format(amount)} ${suffix}`;
+}
+
 export function formatMoney(value: number | null) {
-  if (value === null || Number.isNaN(value)) return '—';
+  if (value === null || !Number.isFinite(value)) return '—';
   return new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 0 }).format(value);
 }
 

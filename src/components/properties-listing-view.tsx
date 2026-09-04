@@ -1,10 +1,10 @@
 'use client';
-/* eslint-disable @next/next/no-img-element */
-
 import { useEffect, useMemo, useState } from 'react';
 import { MapPin, Search } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import { formatEgp } from '@/lib/listings';
 
 type Offer = {
   id: string;
@@ -245,9 +245,9 @@ export function PropertiesListingView({ view }: { view: 'all' | 'sale' | 'rent' 
             const isRental = rentOffers.some((r) => r.id === offer.id);
             return (
               <article key={offer.id} className="panel overflow-hidden rounded-2xl">
-                <div className="relative h-48 bg-[var(--canvas)]">
+                <div className="relative aspect-[16/10] overflow-hidden bg-[var(--canvas)]">
                   {images.length > 0 ? (
-                    <img src={images[0]} alt={offer.title} className="h-full w-full object-cover" />
+                    <Image src={images[0]} alt={offer.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" />
                   ) : (
                     <div className="grid h-full place-items-center text-sm text-[var(--muted)]">
                       لا توجد صور
@@ -259,7 +259,7 @@ export function PropertiesListingView({ view }: { view: 'all' | 'sale' | 'rent' 
                 </div>
                 <div className="p-4">
                   <p className="text-[10px] font-bold text-[var(--brand)]">{offer.property_type || '—'}</p>
-                  <h2 className="mt-2 text-sm font-black line-clamp-2">{offer.title}</h2>
+                  <h2 className="mt-2 min-h-[2.5rem] text-sm font-black line-clamp-2">{offer.title}</h2>
                   <div className="mt-2 flex items-center gap-1 text-xs text-[var(--muted)]">
                     <MapPin size={12} />
                     {offer.location || '—'}
@@ -270,7 +270,7 @@ export function PropertiesListingView({ view }: { view: 'all' | 'sale' | 'rent' 
                     </p>
                   )}
                   <p className="mt-3 text-lg font-black text-[var(--brand)]">
-                    {Number(offer.price || 0).toLocaleString('ar-EG')} {isRental ? 'ر.س/شهر' : 'ر.س'}
+                    {formatEgp(offer.price)}{isRental ? ' / شهرياً' : ''}
                   </p>
                   <Link
                     href={`/properties/${offer.id}?type=${isRental ? 'rental' : 'sale'}`}

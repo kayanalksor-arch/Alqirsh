@@ -1,11 +1,10 @@
 'use client';
-/* eslint-disable @next/next/no-img-element */
-
 import Link from 'next/link';
+import Image from 'next/image';
 import { MapPin, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { formatMoney } from '@/lib/listings';
+import { formatEgp, formatMoney } from '@/lib/listings';
 
 type Vehicle = {
   id: string;
@@ -104,20 +103,20 @@ export function CarsListingView({ view }: { view: 'all' | 'sale' | 'rent' }) {
               : vehicle.price ?? 0;
             return (
               <article key={vehicle.id} className="panel overflow-hidden rounded-2xl">
-                <div className="relative h-52 bg-[var(--canvas)]">
-                  {vehicle.image_url ? <img src={vehicle.image_url} alt={vehicle.title} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-sm text-[var(--muted)]">لا توجد صورة</div>}
+                <div className="relative aspect-[16/10] overflow-hidden bg-[var(--canvas)]">
+                  {vehicle.image_url ? <Image src={vehicle.image_url} alt={vehicle.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" className="object-cover" /> : <div className="grid h-full place-items-center text-sm text-[var(--muted)]">لا توجد صورة</div>}
                   <span className="absolute right-3 top-3 rounded-full bg-[var(--brand)] px-2.5 py-1 text-[10px] font-bold text-white">{vehicle.listing_type === 'sale' ? 'بيع' : 'إيجار'}</span>
                 </div>
                 <div className="p-4">
                   <p className="text-[10px] font-bold text-[var(--brand)]">{vehicle.brand ?? 'ماركة'} · {vehicle.model ?? 'موديل'}</p>
-                  <h2 className="mt-2 text-lg font-black">{vehicle.title}</h2>
+                  <h2 className="mt-2 min-h-[3.5rem] text-lg font-black line-clamp-2">{vehicle.title}</h2>
                   <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-[var(--muted)]">
                     <span>{vehicle.year ?? '—'}</span><span>•</span><span>{vehicle.mileage ? `${formatMoney(vehicle.mileage)} كم` : 'كم غير محدد'}</span><span>•</span><span>{vehicle.transmission ?? 'ناقل حركة'}</span>
                   </div>
                   <div className="mt-4 flex items-center justify-between gap-3">
                     <div>
                       <p className="flex items-center gap-1 text-[11px] text-[var(--muted)]"><MapPin size={12} />{vehicle.location ?? 'الموقع غير محدد'}</p>
-                      <p className="mt-1 text-xl font-black text-[var(--brand)]">{formatMoney(price)} ر.س</p>
+                      <p className="mt-1 text-xl font-black text-[var(--brand)]">{formatEgp(price)}</p>
                     </div>
                     <Link href={`/cars/${vehicle.id}`} className="rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-bold text-[var(--ink)]">التفاصيل</Link>
                   </div>
