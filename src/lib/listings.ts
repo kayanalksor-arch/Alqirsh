@@ -71,6 +71,6 @@ export function listingStatusLabel(status: string | null) {
   }
 }
 
-export function getVehicleImageUrl(listing: Pick<VehicleListing, 'image_url'>, fallback = '/brand/alqirsh-icon.jpg') {
+export function getVehicleImageUrl(listing: Pick<VehicleListing, 'image_url'>, fallback = '/brand/alqirsh-icon.png') {
   return listing.image_url || fallback;
 }

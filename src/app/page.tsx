@@ -24,7 +24,7 @@ export default function Home() {
 
               <div className="mt-6 flex items-center gap-4 rounded-[1.5rem] border border-emerald-300/20 bg-emerald-950/40 p-4 shadow-inner shadow-white/5">
                 <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-2xl border border-white/15 bg-white/5 p-2">
-                  <Image src="/brand/alqirsh-icon.jpg" alt="شعار القِرش" width={64} height={64} className="h-full w-full rounded-xl object-cover" priority />
+                  <Image src="/brand/alqirsh-icon.png" alt="شعار القِرش" width={64} height={64} className="h-full w-full rounded-xl object-cover" priority />
                 </div>
                 <div>
                   <p className="text-xs font-medium text-emerald-100">منصة عقارية موثوقة</p>

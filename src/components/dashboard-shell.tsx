@@ -31,7 +31,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function Brand() {
-  return <Link href="/dashboard" className="flex items-center gap-3 border-b border-[var(--line)] pb-6"><Image src="/brand/alqirsh-icon.jpg" alt="شعار القِرش" width={44} height={44} className="size-11 rounded-xl object-cover shadow-sm" priority /><span><b className="block">القِرش</b><small className="text-[var(--muted)]">إدارة العقارات</small></span></Link>;
+  return <Link href="/dashboard" className="flex items-center gap-3 border-b border-[var(--line)] pb-6"><Image src="/brand/alqirsh-icon.png" alt="شعار القِرش" width={44} height={44} className="size-11 rounded-xl object-cover shadow-sm" priority /><span><b className="block">القِرش</b><small className="text-[var(--muted)]">إدارة العقارات</small></span></Link>;
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
