@@ -8,8 +8,11 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   applicationName: 'القِرش',
   icons: {
-    icon: [{ url: '/brand/icon-logo.png', type: 'image/png', sizes: '139x147' }],
-    apple: [{ url: '/brand/icon-logo.png', type: 'image/png', sizes: '139x147' }],
+    icon: [
+      { url: '/brand/alqirsh-icon-192.png', type: 'image/png', sizes: '192x192' },
+      { url: '/brand/alqirsh-icon-512.png', type: 'image/png', sizes: '512x512' },
+    ],
+    apple: [{ url: '/brand/alqirsh-icon-192.png', type: 'image/png', sizes: '192x192' }],
   },
   appleWebApp: {
     capable: true,
