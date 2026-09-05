@@ -3,10 +3,14 @@ import './globals.css';
 import { PwaRegister } from '@/components/pwa-register';
 
 export const metadata: Metadata = {
-  title: 'القِرش | Alqirsh — عقارات - سيارات',
-  description: 'منصة القِرش تجمع بين أفضل العقارات والسيارات المعروضة للبيع والإيجار في تجربة احترافية وسريعة ومريحة للمستخدمين.',
+  title: 'القِرش | Alqirsh — عقارات وسيارات',
+  description: 'منصة القِرش للعقارات والسيارات للبيع والإيجار.',
   manifest: '/manifest.webmanifest',
   applicationName: 'القِرش',
+  icons: {
+    icon: [{ url: '/brand/alqirsh-icon.png', type: 'image/png', sizes: '139x147' }],
+    apple: [{ url: '/brand/alqirsh-icon.png', type: 'image/png', sizes: '139x147' }],
+  },
   appleWebApp: {
     capable: true,
     title: 'القِرش',
