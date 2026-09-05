@@ -5,6 +5,7 @@ import { Download, Edit3, ImagePlus, LoaderCircle, Plus, Search, Trash2, X } fro
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { addBrandWatermark } from '@/lib/image-watermark';
+import { listingStatusClass, listingStatusLabel, listingStatusesForType } from '@/lib/listings';
 
 type Offer = {
   id: string;
@@ -38,7 +39,7 @@ type FormFields = {
   image_files: File[];
 };
 
-const blank = (): FormFields => ({ title: '', description: '', property_type: '', price: '', location: '', address: '', map_url: '', area: '', bedrooms: '', bathrooms: '', facade: '', status: 'draft', image_files: [] });
+const blank = (): FormFields => ({ title: '', description: '', property_type: '', price: '', location: '', address: '', map_url: '', area: '', bedrooms: '', bathrooms: '', facade: '', status: 'pending_review', image_files: [] });
 
 async function ensureManagerProfile(db: ReturnType<typeof createClient>) {
   const { data: { user }, error: userError } = await db.auth.getUser();
@@ -113,7 +114,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   }, [load]);
 
   const locations = useMemo(() => [...new Set(offers.map((offer) => offer.location).filter(Boolean))] as string[], [offers]);
-  const statuses = useMemo(() => [...new Set(offers.map((offer) => offer.status).filter(Boolean))] as string[], [offers]);
+  const statuses = listingStatusesForType(kind === 'rental' ? 'rent' : 'sale');
   const normalizeText = (value: string) => value.toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
   const formatNumber = (value: number | null) => value === null ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
 
@@ -281,7 +282,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
 
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="min-h-12 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 text-sm font-semibold">
           <option value="">كل الحالات</option>
-          {statuses.map((item) => <option key={item} value={item}>{item}</option>)}
+          {statuses.map((item) => <option key={item} value={item}>{listingStatusLabel(item, kind === 'rental' ? 'rent' : 'sale')}</option>)}
         </select>
 
         <button type="button" onClick={() => open()} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-5 font-bold text-white">
@@ -307,7 +308,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
               </div>
 
               <div className="flex flex-1 flex-col p-5">
-                <p className="text-xs font-bold text-[var(--brand)]">{offer.status}</p>
+                <span className={`status-badge ${listingStatusClass(offer.status)}`}>{listingStatusLabel(offer.status, kind === 'rental' ? 'rent' : 'sale')}</span>
                 <div className="mt-2 flex items-start justify-between gap-3">
                   <h2 className="flex-1 font-black">{offer.title}</h2>
                   <strong className="shrink-0 text-[var(--brand)]">{formatNumber(offer.price)} ج.م</strong>
@@ -380,9 +381,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
 
                 <label className="flex flex-col gap-2 text-sm font-bold">الحالة
                   <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 outline-none focus:ring-2 focus:ring-emerald-500">
-                    <option value="draft">مسودة</option>
-                    <option value="active">نشط</option>
-                    <option value="inactive">غير نشط</option>
+                    {statuses.map((status) => <option key={status} value={status}>{listingStatusLabel(status, kind === 'rental' ? 'rent' : 'sale')}</option>)}
                   </select>
                 </label>
 

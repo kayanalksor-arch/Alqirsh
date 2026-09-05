@@ -4,7 +4,7 @@ import { MapPin, Search } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { formatEgp } from '@/lib/listings';
+import { formatEgp, listingStatusClass, listingStatusLabel, publicListingStatuses } from '@/lib/listings';
 
 type Offer = {
   id: string;
@@ -17,6 +17,7 @@ type Offer = {
   bedrooms: number | null;
   bathrooms: number | null;
   property_type: string | null;
+  status: string | null;
 };
 
 const normalizeSearchText = (value: string) =>
@@ -48,8 +49,8 @@ export function PropertiesListingView({ view }: { view: 'all' | 'sale' | 'rent' 
         // Fetch sale offers
         const { data: sales, error: saleError } = await db
           .from('sale_offers')
-          .select('id,title,description,price,location,address,area,bedrooms,bathrooms,property_type')
-          .eq('status', 'active')
+          .select('id,title,description,price,location,address,area,bedrooms,bathrooms,property_type,status')
+          .in('status', publicListingStatuses)
           .order('created_at', { ascending: false });
 
         if (saleError) throw saleError;
@@ -57,8 +58,8 @@ export function PropertiesListingView({ view }: { view: 'all' | 'sale' | 'rent' 
         // Fetch rental offers
         const { data: rentals, error: rentError } = await db
           .from('rental_offers')
-          .select('id,title,description,price,location,address,area,bedrooms,bathrooms,property_type')
-          .eq('status', 'active')
+          .select('id,title,description,price,location,address,area,bedrooms,bathrooms,property_type,status')
+          .in('status', publicListingStatuses)
           .order('created_at', { ascending: false });
 
         if (rentError) throw rentError;
@@ -259,6 +260,7 @@ export function PropertiesListingView({ view }: { view: 'all' | 'sale' | 'rent' 
                 </div>
                 <div className="p-4">
                   <p className="text-[10px] font-bold text-[var(--brand)]">{offer.property_type || '—'}</p>
+                  <span className={`status-badge mt-2 ${listingStatusClass(offer.status)}`}>{listingStatusLabel(offer.status, isRental ? 'rent' : 'sale')}</span>
                   <h2 className="mt-2 min-h-[2.5rem] text-sm font-black line-clamp-2">{offer.title}</h2>
                   <div className="mt-2 flex items-center gap-1 text-xs text-[var(--muted)]">
                     <MapPin size={12} />

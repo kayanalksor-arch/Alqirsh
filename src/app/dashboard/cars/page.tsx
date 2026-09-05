@@ -6,12 +6,14 @@ export default async function DashboardCarsPage() {
   const db = await createClient();
 
   // Fetch statistics
-  const [totalCount, saleCount, rentCount, activeCount, inactiveCount] = await Promise.all([
+  const [totalCount, availableSaleCount, availableRentCount, soldCount, rentedCount, reservedCount, archivedCount] = await Promise.all([
     db.from('vehicle_listings').select('*', { count: 'exact', head: true }).then(r => r.count ?? 0),
-    db.from('vehicle_listings').select('*', { count: 'exact', head: true }).eq('listing_type', 'sale').then(r => r.count ?? 0),
-    db.from('vehicle_listings').select('*', { count: 'exact', head: true }).eq('listing_type', 'rent').then(r => r.count ?? 0),
-    db.from('vehicle_listings').select('*', { count: 'exact', head: true }).eq('status', 'active').then(r => r.count ?? 0),
-    db.from('vehicle_listings').select('*', { count: 'exact', head: true }).eq('status', 'inactive').then(r => r.count ?? 0),
+    db.from('vehicle_listings').select('*', { count: 'exact', head: true }).match({ listing_type: 'sale', status: 'available' }).then(r => r.count ?? 0),
+    db.from('vehicle_listings').select('*', { count: 'exact', head: true }).match({ listing_type: 'rent', status: 'available' }).then(r => r.count ?? 0),
+    db.from('vehicle_listings').select('*', { count: 'exact', head: true }).eq('status', 'sold').then(r => r.count ?? 0),
+    db.from('vehicle_listings').select('*', { count: 'exact', head: true }).eq('status', 'rented').then(r => r.count ?? 0),
+    db.from('vehicle_listings').select('*', { count: 'exact', head: true }).eq('status', 'reserved').then(r => r.count ?? 0),
+    db.from('vehicle_listings').select('*', { count: 'exact', head: true }).eq('status', 'archived').then(r => r.count ?? 0),
   ]);
 
   return (
@@ -24,26 +26,34 @@ export default async function DashboardCarsPage() {
 
       <main className="dashboard-content space-y-6">
         {/* Statistics Cards */}
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           <article className="panel rounded-2xl p-4">
             <p className="text-xs text-[var(--muted)]">إجمالي السيارات</p>
             <strong className="mt-3 block text-3xl font-black">{totalCount}</strong>
           </article>
           <article className="panel rounded-2xl p-4">
-            <p className="text-xs text-[var(--muted)]">للبيع</p>
-            <strong className="mt-3 block text-3xl font-black">{saleCount}</strong>
+            <p className="text-xs text-[var(--muted)]">متاحة للبيع</p>
+            <strong className="mt-3 block text-3xl font-black">{availableSaleCount}</strong>
           </article>
           <article className="panel rounded-2xl p-4">
-            <p className="text-xs text-[var(--muted)]">للإيجار</p>
-            <strong className="mt-3 block text-3xl font-black">{rentCount}</strong>
+            <p className="text-xs text-[var(--muted)]">متاحة للإيجار</p>
+            <strong className="mt-3 block text-3xl font-black">{availableRentCount}</strong>
           </article>
           <article className="panel rounded-2xl p-4">
-            <p className="text-xs text-[var(--muted)]">نشطة</p>
-            <strong className="mt-3 block text-3xl font-black">{activeCount}</strong>
+            <p className="text-xs text-[var(--muted)]">تم البيع</p>
+            <strong className="mt-3 block text-3xl font-black">{soldCount}</strong>
           </article>
           <article className="panel rounded-2xl p-4">
-            <p className="text-xs text-[var(--muted)]">غير نشطة</p>
-            <strong className="mt-3 block text-3xl font-black">{inactiveCount}</strong>
+            <p className="text-xs text-[var(--muted)]">تم التأجير</p>
+            <strong className="mt-3 block text-3xl font-black">{rentedCount}</strong>
+          </article>
+          <article className="panel rounded-2xl p-4">
+            <p className="text-xs text-[var(--muted)]">محجوزة</p>
+            <strong className="mt-3 block text-3xl font-black">{reservedCount}</strong>
+          </article>
+          <article className="panel rounded-2xl p-4">
+            <p className="text-xs text-[var(--muted)]">مؤرشفة</p>
+            <strong className="mt-3 block text-3xl font-black">{archivedCount}</strong>
           </article>
         </section>
 

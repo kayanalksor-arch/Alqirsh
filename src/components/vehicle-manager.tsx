@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CarFront, Edit3, Plus, Search, Trash2, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { addBrandWatermark } from '@/lib/image-watermark';
-import { formatEgp } from '@/lib/listings';
+import { formatEgp, listingStatusClass, listingStatusLabel, listingStatusesForType } from '@/lib/listings';
 
 type Vehicle = {
   id: string;
@@ -73,7 +73,7 @@ const blank = (): FormState => ({
   mileage: '',
   color: '',
   location: '',
-  status: 'active',
+  status: 'pending_review',
   description: '',
   contact_name: '',
   contact_phone: '',
@@ -166,7 +166,7 @@ export function VehicleManager() {
         mileage: item.mileage ? String(item.mileage) : '',
         color: item.color || '',
         location: item.location || '',
-        status: item.status || 'active',
+        status: item.status || 'pending_review',
         description: item.description || '',
         contact_name: item.contact_name || '',
         contact_phone: item.contact_phone || '',
@@ -204,6 +204,11 @@ export function VehicleManager() {
     if (form.listing_type === 'rent' && !form.daily_price && !form.weekly_price && !form.monthly_price) {
       setMessage('يجب إدخال سعر واحد على الأقل للإيجار');
       return;
+    }
+
+    if (editing && editing.status !== form.status && ['sold', 'rented', 'archived', 'withdrawn'].includes(form.status)) {
+      const confirmed = window.confirm(`هل أنت متأكد من تغيير حالة هذا العرض إلى «${listingStatusLabel(form.status, form.listing_type)}»؟`);
+      if (!confirmed) return;
     }
 
     setSaving(true);
@@ -315,9 +320,10 @@ export function VehicleManager() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 text-sm"
         >
-          <option value="">الكل</option>
-          <option value="active">نشط</option>
-          <option value="inactive">غير نشط</option>
+          <option value="">كل الحالات</option>
+          {listingStatusesForType(typeFilter || undefined).map((status) => (
+            <option key={status} value={status}>{listingStatusLabel(status, typeFilter || undefined)}</option>
+          ))}
         </select>
         <button
           onClick={() => openForm()}
@@ -361,6 +367,7 @@ export function VehicleManager() {
                 <p className="text-[10px] font-bold text-[var(--brand)]">{v.brand || '—'} / {v.model || '—'}</p>
                 <p className="mt-1 font-bold text-sm truncate">{v.title}</p>
                 <p className="mt-0.5 text-[11px] text-[var(--muted)]">{v.location || '—'}</p>
+                <span className={`status-badge mt-2 ${listingStatusClass(v.status)}`}>{listingStatusLabel(v.status, v.listing_type)}</span>
                 <p className="mt-2 text-base font-black text-[var(--brand)]">
                   {formatEgp(v.price ?? v.daily_price)}
                 </p>
@@ -522,10 +529,7 @@ export function VehicleManager() {
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
                   className="min-h-10 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 text-sm"
                 >
-                  <option value="active">نشط</option>
-                  <option value="inactive">غير نشط</option>
-                  <option value="sold">مباع</option>
-                  <option value="archived">مؤرشف</option>
+                  {listingStatusesForType(form.listing_type).map((status) => <option key={status} value={status}>{listingStatusLabel(status, form.listing_type)}</option>)}
                 </select>
               </div>
 

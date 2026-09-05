@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { MapPin, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { formatEgp, formatMoney } from '@/lib/listings';
+import { formatEgp, formatMoney, listingStatusClass, listingStatusLabel, publicListingStatuses } from '@/lib/listings';
 
 type Vehicle = {
   id: string;
@@ -22,6 +22,7 @@ type Vehicle = {
   mileage: number | null;
   location: string | null;
   image_url: string | null;
+  status: string | null;
 };
 
 export function CarsListingView({ view }: { view: 'all' | 'sale' | 'rent' }) {
@@ -36,8 +37,8 @@ export function CarsListingView({ view }: { view: 'all' | 'sale' | 'rent' }) {
       const db = createClient();
       const { data, error: loadError } = await db
         .from('vehicle_listings')
-        .select('id,title,brand,model,year,listing_type,price,daily_price,weekly_price,monthly_price,fuel_type,transmission,mileage,location,image_url')
-        .eq('status', 'active')
+        .select('id,title,brand,model,year,listing_type,price,daily_price,weekly_price,monthly_price,fuel_type,transmission,mileage,location,image_url,status')
+        .in('status', publicListingStatuses)
         .order('created_at', { ascending: false });
 
       if (loadError) {
@@ -109,6 +110,7 @@ export function CarsListingView({ view }: { view: 'all' | 'sale' | 'rent' }) {
                 </div>
                 <div className="p-4">
                   <p className="text-[10px] font-bold text-[var(--brand)]">{vehicle.brand ?? 'ماركة'} · {vehicle.model ?? 'موديل'}</p>
+                  <span className={`status-badge mt-2 ${listingStatusClass(vehicle.status)}`}>{listingStatusLabel(vehicle.status, vehicle.listing_type)}</span>
                   <h2 className="mt-2 min-h-[3.5rem] text-lg font-black line-clamp-2">{vehicle.title}</h2>
                   <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-[var(--muted)]">
                     <span>{vehicle.year ?? '—'}</span><span>•</span><span>{vehicle.mileage ? `${formatMoney(vehicle.mileage)} كم` : 'كم غير محدد'}</span><span>•</span><span>{vehicle.transmission ?? 'ناقل حركة'}</span>

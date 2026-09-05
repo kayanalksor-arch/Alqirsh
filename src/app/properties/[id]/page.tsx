@@ -4,7 +4,7 @@ import { MapPin } from 'lucide-react';
 import { PublicHeader } from '@/components/public-header';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { ImageLightbox } from '@/components/image-lightbox';
-import { formatEgp } from '@/lib/listings';
+import { formatEgp, listingStatusClass, listingStatusLabel, publicListingStatuses } from '@/lib/listings';
 
 type PropertyDetailsPageProps = {
   params: Promise<{ id: string }>;
@@ -23,7 +23,7 @@ export default async function PropertyDetailsPage({ params, searchParams }: Prop
     .from(table)
     .select('id,title,description,property_type,price,location,address,map_url,area,bedrooms,bathrooms,facade,status')
     .eq('id', id)
-    .eq('status', 'active')
+    .in('status', publicListingStatuses)
     .maybeSingle();
 
   if (error || !property) notFound();
@@ -59,7 +59,7 @@ export default async function PropertyDetailsPage({ params, searchParams }: Prop
           </section>
 
           <section className="panel rounded-2xl p-6">
-            <span className="rounded-full bg-[var(--brand)] px-3 py-1 text-xs font-bold text-white">{propertyType === 'rental' ? 'إيجار' : 'بيع'}</span>
+            <span className={`status-badge ${listingStatusClass(property.status)}`}>{listingStatusLabel(property.status, propertyType === 'rental' ? 'rent' : 'sale')}</span>
             <p className="mt-5 text-2xl font-black text-[var(--brand)]">{formatEgp(property.price)}{propertyType === 'rental' ? ' / شهرياً' : ''}</p>
             <div className="mt-5 space-y-3 text-sm">
               <p className="flex items-center gap-2 text-[var(--muted)]"><MapPin size={16} /> {property.location || property.address || 'الموقع غير محدد'}</p>

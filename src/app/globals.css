@@ -65,6 +65,13 @@ select option { background: var(--popover); color: var(--popover-foreground); }
 
 .app-shell { min-height: 100vh; background: radial-gradient(circle at 8% 0%, var(--primary-soft) 0, transparent 30%), var(--background); }
 .panel { background: var(--card); color: var(--card-foreground); border: 1px solid var(--border); box-shadow: var(--shadow); }
+.status-badge { display: inline-flex; align-items: center; width: fit-content; border-radius: 999px; padding: .3rem .6rem; font-size: .7rem; font-weight: 800; line-height: 1.2; }
+.status-badge--available { background: var(--success-surface); color: var(--success-foreground); }
+.status-badge--reserved { background: var(--warning-surface); color: var(--warning-foreground); }
+.status-badge--closed { background: var(--info-surface); color: var(--info-foreground); }
+.status-badge--review { background: var(--accent-surface); color: var(--accent-foreground); }
+.status-badge--paused { background: var(--muted-surface); color: var(--muted-foreground); }
+.status-badge--archived { background: var(--secondary); color: var(--secondary-foreground); }
 .eyebrow { color: var(--brand); font-size: .78rem; font-weight: 800; letter-spacing: .08em; }
 .page-container { width: min(100%, 72rem); margin-inline: auto; padding-inline: clamp(.875rem, 3vw, 1.25rem); padding-block: clamp(1.75rem, 4vw, 3.5rem); }
 .page-container--narrow { width: min(100%, 64rem); }

@@ -24,6 +24,32 @@ export type VehicleListing = {
   created_at: string | null;
 };
 
+export const listingStatuses = ['available', 'reserved', 'sold', 'rented', 'pending_review', 'temporarily_unavailable', 'unavailable', 'archived', 'withdrawn'] as const;
+export type ListingStatus = (typeof listingStatuses)[number];
+export const publicListingStatuses: ListingStatus[] = ['available', 'reserved'];
+export const listingStatusOptions: Array<{ value: ListingStatus; label: string }> = listingStatuses.map((status) => ({
+  value: status,
+  label: listingStatusLabel(status),
+}));
+
+export function listingStatusesForType(listingType: string | null | undefined) {
+  return listingStatuses.filter((status) => {
+    if (listingType === 'sale') return status !== 'rented';
+    if (listingType === 'rent' || listingType === 'rental') return status !== 'sold';
+    return true;
+  });
+}
+
+export function listingStatusLabel(status: string | null, listingType?: string | null) {
+  if (status === 'available') return listingType === 'rent' || listingType === 'rental' ? 'متاح للإيجار' : 'متاح للبيع';
+  const labels: Record<string, string> = { reserved: 'محجوز', sold: 'تم البيع', rented: 'تم التأجير', pending_review: 'قيد المراجعة', temporarily_unavailable: 'موقوف مؤقتًا', unavailable: 'غير متاح', archived: 'مؤرشف', withdrawn: 'تم سحب العرض' };
+  return status ? labels[status] ?? 'غير محدد' : 'غير محدد';
+}
+
+export function listingStatusClass(status: string | null) {
+  return ({ available: 'status-badge--available', reserved: 'status-badge--reserved', sold: 'status-badge--closed', rented: 'status-badge--closed', pending_review: 'status-badge--review', temporarily_unavailable: 'status-badge--paused', unavailable: 'status-badge--paused', archived: 'status-badge--archived', withdrawn: 'status-badge--archived' } as Record<string, string>)[status ?? ''] ?? 'status-badge--archived';
+}
+
 export function normalizeSearchText(value: string) {
   return value
     .toLowerCase()
@@ -54,21 +80,6 @@ export function listingTypeLabel(type: string | null) {
   if (type === 'rent') return 'إيجار';
   if (type === 'sale') return 'بيع';
   return 'إعلان';
-}
-
-export function listingStatusLabel(status: string | null) {
-  switch (status) {
-    case 'active':
-      return 'نشط';
-    case 'inactive':
-      return 'غير نشط';
-    case 'sold':
-      return 'مباع';
-    case 'archived':
-      return 'مؤرشف';
-    default:
-      return status ?? 'غير محدد';
-  }
 }
 
 export function getVehicleImageUrl(listing: Pick<VehicleListing, 'image_url'>, fallback = '/brand/alqirsh-icon.png') {

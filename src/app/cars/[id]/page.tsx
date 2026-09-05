@@ -3,7 +3,7 @@ import { ArrowLeft, CalendarDays, CarFront, MapPin, Phone, Tag, Users } from 'lu
 import { PublicHeader } from '@/components/public-header';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { ImageLightbox } from '@/components/image-lightbox';
-import { formatEgp } from '@/lib/listings';
+import { formatEgp, listingStatusClass, listingStatusLabel } from '@/lib/listings';
 
 export default async function CarDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -49,7 +49,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
           </article>
 
           <aside className="panel rounded-[2rem] p-5">
-            <p className="text-xs font-bold text-[var(--brand)]">{listing.listing_type === 'rent' ? 'إيجار' : 'بيع'}</p>
+            <span className={`status-badge ${listingStatusClass(listing.status)}`}>{listingStatusLabel(listing.status, listing.listing_type)}</span>
             <h2 className="mt-3 text-2xl font-black">{formatEgp(price)}</h2>
             <p className="mt-2 text-sm text-[var(--muted)]">{listing.location ?? 'الموقع غير محدد'}</p>
 
@@ -76,7 +76,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
               <div className="rounded-xl bg-[var(--canvas)] p-3"><p className="text-xs text-[var(--muted)]">الفئة</p><p className="mt-1 font-bold">{listing.variant ?? 'غير محدد'}</p></div>
               <div className="rounded-xl bg-[var(--canvas)] p-3"><p className="text-xs text-[var(--muted)]">الكيلومترات</p><p className="mt-1 font-bold">{listing.mileage ? `${Number(listing.mileage).toLocaleString('ar-EG')} كم` : 'غير محدد'}</p></div>
               <div className="rounded-xl bg-[var(--canvas)] p-3"><p className="text-xs text-[var(--muted)]">اللون</p><p className="mt-1 font-bold">{listing.color ?? 'غير محدد'}</p></div>
-              <div className="rounded-xl bg-[var(--canvas)] p-3"><p className="text-xs text-[var(--muted)]">حالة الإعلان</p><p className="mt-1 font-bold">{listing.status ?? 'نشط'}</p></div>
+              <div className="rounded-xl bg-[var(--canvas)] p-3"><p className="text-xs text-[var(--muted)]">حالة الإعلان</p><p className="mt-1 font-bold">{listingStatusLabel(listing.status, listing.listing_type)}</p></div>
             </div>
           </article>
 

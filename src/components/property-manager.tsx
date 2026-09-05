@@ -5,7 +5,7 @@ import { Download, Edit3, ImagePlus, LoaderCircle, Plus, Search, Trash2, X } fro
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { addBrandWatermark } from '@/lib/image-watermark';
-import { formatEgp } from '@/lib/listings';
+import { formatEgp, listingStatusClass, listingStatusLabel, listingStatuses } from '@/lib/listings';
 
 type Property = {
   id: string;
@@ -55,7 +55,7 @@ const blank = (): FormFields => ({
   bedrooms: '',
   bathrooms: '',
   facade: '',
-  status: 'draft',
+  status: 'pending_review',
   kind: 'sale',
   image_files: [],
 });
@@ -244,6 +244,11 @@ export function PropertyManager() {
     e.preventDefault();
     if (!form) return;
 
+    if (editing && editing.status !== form.status && ['sold', 'rented', 'archived'].includes(form.status)) {
+      const confirmed = window.confirm(`هل أنت متأكد من تغيير حالة هذا العرض إلى «${listingStatusLabel(form.status, form.kind === 'rental' ? 'rent' : 'sale')}»؟`);
+      if (!confirmed) return;
+    }
+
     setSaving(true);
     const db = createClient();
 
@@ -393,9 +398,7 @@ export function PropertyManager() {
               className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 text-sm font-semibold"
             >
               <option value="">كل الحالات</option>
-              <option value="draft">مسودة</option>
-              <option value="active">نشط</option>
-              <option value="inactive">غير نشط</option>
+              {listingStatuses.filter((status) => status !== 'withdrawn').map((status) => <option key={status} value={status}>{listingStatusLabel(status)}</option>)}
             </select>
 
             <select
@@ -456,15 +459,7 @@ export function PropertyManager() {
                       <td className="p-3">{formatEgp(p.price)}</td>
                       <td className="p-3 text-[var(--muted)]">{p.location || '—'}</td>
                       <td className="p-3">
-                        <span
-                          className={`rounded px-2 py-1 text-[11px] font-bold ${
-                            p.status === 'active'
-                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-                              : 'bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300'
-                          }`}
-                        >
-                          {p.status === 'active' ? 'نشط' : 'غير نشط'}
-                        </span>
+                        <span className={`status-badge ${listingStatusClass(p.status)}`}>{listingStatusLabel(p.status, p.kind === 'rental' ? 'rent' : 'sale')}</span>
                       </td>
                       <td className="p-3">
                         <div className="flex items-center justify-center gap-2">
@@ -674,9 +669,7 @@ export function PropertyManager() {
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
                   className="w-full rounded-lg border border-[var(--line)] bg-[var(--canvas)] px-4 py-2 text-sm outline-none"
                 >
-                  <option value="draft">مسودة</option>
-                  <option value="active">نشط</option>
-                  <option value="inactive">غير نشط</option>
+                  {listingStatuses.filter((status) => status !== 'withdrawn').map((status) => <option key={status} value={status}>{listingStatusLabel(status, form.kind === 'rental' ? 'rent' : 'sale')}</option>)}
                 </select>
               </div>
             </div>
