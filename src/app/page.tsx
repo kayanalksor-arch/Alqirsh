@@ -1,113 +1,44 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Building2, CarFront, Phone, Users } from 'lucide-react';
+import { ArrowLeft, Building2, CarFront, CheckCircle2, Search, Wrench } from 'lucide-react';
+import { PublicFooter } from '@/components/public-footer';
 import { PublicHeader } from '@/components/public-header';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
+import { formatEgp, publicListingStatuses } from '@/lib/listings';
 
-const actions = [
-  ['/properties', 'العقارات', 'استعرض العقارات المتاحة للبيع والإيجار.', Building2],
-  ['/cars', 'السيارات', 'اكتشف أحدث السيارات المعروضة في السوق.', CarFront],
-  ['/contact', 'تواصل معنا', 'تواصل مباشرة مع فريق القِرش.', Phone],
+type Offer = { id: string; title: string; price: number | null; location: string | null; property_type: string | null; imageUrl: string | null; listingType: 'sale' | 'rental' };
+type Vehicle = { id: string; title: string; brand: string | null; model: string | null; price: number | null; image_url: string | null };
+const destinations = [
+  ['/sales', 'عقارات للبيع', 'تصفح عروض البيع المتاحة', Building2], ['/rentals', 'عقارات للإيجار', 'اعثر على خيار الإيجار المناسب', Building2], ['/cars/sale', 'سيارات للبيع', 'سيارات معروضة للبيع', CarFront], ['/cars/rent', 'سيارات للإيجار', 'سيارات متاحة للإيجار', CarFront],
 ] as const;
 
-export default function Home() {
-  return (
-    <main className="app-shell min-h-screen">
-      <PublicHeader />
-      <section className="page-container">
-        <div className="overflow-hidden rounded-[2rem] border border-emerald-400/20 bg-[linear-gradient(135deg,#0d5649_0%,#0a463d_100%)] p-4 shadow-[0_30px_80px_rgba(6,60,46,0.35)] sm:p-6 lg:p-7">
-          <div className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
-            <div className="rounded-[1.75rem] border border-emerald-300/25 bg-emerald-950/30 p-5 backdrop-blur-sm">
-              <div className="flex items-center justify-between gap-3 text-white">
-                <span className="text-sm font-semibold">شركاء النجاح</span>
-                <div className="h-2.5 w-2.5 rounded-full bg-emerald-300 shadow-[0_0_0_4px_rgba(110,231,183,0.2)]" />
-              </div>
-
-              <div className="mt-6 flex items-center gap-4 rounded-[1.5rem] border border-emerald-300/20 bg-emerald-950/40 p-4 shadow-inner shadow-white/5">
-                <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-2xl border border-white/15 bg-white/5 p-2">
-                  <Image src="/brand/alqirsh-icon.png" alt="شعار القِرش" width={64} height={64} className="h-full w-full rounded-xl object-cover" priority />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-emerald-100">منصة عقارية موثوقة</p>
-                  <h2 className="mt-1 text-2xl font-black text-white">القِرش</h2>
-                </div>
-              </div>
-
-              <div className="mt-5 flex items-center gap-3 rounded-full border border-emerald-300/20 bg-emerald-950/40 px-3 py-2.5 shadow-inner shadow-white/5">
-                <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-full bg-white shadow-sm">
-                  <Image src="/brand/shorouk-logo.png" alt="شعار مكتب الشروق" width={48} height={48} className="h-full w-full object-cover" priority />
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-semibold text-emerald-100">شريك</p>
-                  <p className="text-sm font-black text-white">مكتب الشروق للأستشارات الهندسية </p>
-                </div>
-              </div>
-
-              <div className="mt-8 rounded-[1.5rem] border border-emerald-300/20 bg-emerald-950/40 p-4 text-emerald-50">
-                <p className="text-sm font-medium">مستوى خدمة احترافي، لمجموعة من الشركاء الموثوقين في السوق العقاري.</p>
-              </div>
-
-              <div className="mt-8 flex justify-center">
-                <Link href="/partners" className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-600/30 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-600/40">
-                  عرض الشركاء <ArrowLeft size={16} />
-                </Link>
-              </div>
-            </div>
-
-            <div className="flex flex-col justify-center px-1 py-2 text-white">
-              <div className="mb-4 inline-flex w-fit items-center gap-3 rounded-full border border-emerald-300/25 bg-emerald-950/30 px-4 py-2 text-sm font-bold text-emerald-100">
-                <span className="grid size-2.5 place-items-center rounded-full bg-emerald-400" />
-                القِرش
-              </div>
-
-              <h1 className="max-w-xl text-3xl font-black leading-tight text-white sm:text-4xl lg:text-5xl">القِرش — مكانك لاكتشاف العقارات والسيارات.</h1>
-              <p className="mt-5 max-w-xl text-base leading-8 text-emerald-50">
-                منصة القِرش تجمع بين أفضل العقارات والسيارات المعروضة للبيع والإيجار في تجربة احترافية وسريعة ومريحة للمستخدمين.
-              </p>
-
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/properties" className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-emerald-300/40 bg-emerald-600/20 px-5 font-bold text-white transition hover:bg-emerald-600/30">
-                  عقارات <ArrowLeft size={18} />
-                </Link>
-                <Link href="/cars" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-emerald-300/40 bg-emerald-600/20 px-5 font-bold text-white transition hover:bg-emerald-600/30">
-                  سيارات
-                </Link>
-              </div>
-
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/partners" className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-emerald-300/40 bg-emerald-600/30 px-5 font-bold text-emerald-50 transition hover:bg-emerald-600/40">
-                  شركاء النجاح <ArrowLeft size={16} />
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <section className="mt-8 grid gap-5 md:grid-cols-3">
-          {actions.map(([href, label, description, Icon]) => (
-            <Link key={href} href={href} className="panel group rounded-2xl p-6 transition hover:-translate-y-1 hover:border-[var(--brand)]">
-              <span className="grid size-11 place-items-center rounded-xl bg-emerald-50 text-[var(--brand)] dark:bg-emerald-950/50">
-                <Icon size={22} />
-              </span>
-              <h2 className="mt-6 text-xl font-black">{label}</h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{description}</p>
-              <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[var(--brand)]">
-                اكتشف المزيد <ArrowLeft size={16} />
-              </span>
-            </Link>
-          ))}
-
-          <Link href="/partners" className="panel group rounded-2xl p-6 transition hover:-translate-y-1 hover:border-[var(--brand)]">
-            <span className="grid size-11 place-items-center rounded-xl bg-emerald-50 text-[var(--brand)] dark:bg-emerald-950/50">
-              <Users size={22} />
-            </span>
-            <h2 className="mt-6 text-xl font-black">شركاء النجاح</h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">تعرف على شركائنا الموثوقين في النجاح.</p>
-            <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[var(--brand)]">
-              عرض الشركاء <ArrowLeft size={16} />
-            </span>
-          </Link>
-        </section>
-      </section>
-    </main>
-  );
+export default async function Home() {
+  let properties: Offer[] = []; let vehicles: Vehicle[] = [];
+  if (isSupabaseConfigured) try {
+    const db = await createClient();
+    const [sales, rentals, cars] = await Promise.all([
+      db.from('sale_offers').select('id,title,price,location,property_type').in('status', publicListingStatuses).order('created_at', { ascending: false }).limit(4),
+      db.from('rental_offers').select('id,title,price,location,property_type').in('status', publicListingStatuses).order('created_at', { ascending: false }).limit(4),
+      db.from('vehicle_listings').select('id,title,brand,model,price,image_url').in('status', publicListingStatuses).order('created_at', { ascending: false }).limit(4),
+    ]);
+    const saleIds = (sales.data ?? []).map((item) => item.id);
+    const rentalIds = (rentals.data ?? []).map((item) => item.id);
+    const [saleMedia, rentalMedia] = await Promise.all([
+      db.from('property_images').select('property_id,image_url,image_path').eq('property_type', 'sale').in('property_id', saleIds).order('sort_order'),
+      db.from('property_images').select('property_id,image_url,image_path').eq('property_type', 'rental').in('property_id', rentalIds).order('sort_order'),
+    ]);
+    const mediaUrl = (item: { image_url: string | null; image_path: string | null }) => item.image_url || (item.image_path ? db.storage.from('listing-images').getPublicUrl(item.image_path).data.publicUrl : null);
+    const saleImages = new Map((saleMedia.data ?? []).filter((item) => mediaUrl(item)).map((item) => [item.property_id, mediaUrl(item)!]));
+    const rentalImages = new Map((rentalMedia.data ?? []).filter((item) => mediaUrl(item)).map((item) => [item.property_id, mediaUrl(item)!]));
+    properties = [...(sales.data ?? []).map((item) => ({ ...item, imageUrl: saleImages.get(item.id) ?? null, listingType: 'sale' as const })), ...(rentals.data ?? []).map((item) => ({ ...item, imageUrl: rentalImages.get(item.id) ?? null, listingType: 'rental' as const }))].slice(0, 4); vehicles = (cars.data ?? []) as Vehicle[];
+  } catch { /* The empty states below remain intentional and usable. */ }
+  return <main className="app-shell min-h-screen"><PublicHeader />
+    <section className="hero-shell"><div className="page-container py-10 sm:py-14"><p className="eyebrow text-[var(--on-brand-muted)]">القِرش | عقارات وسيارات</p><h1 className="mt-3 max-w-3xl text-4xl font-black leading-tight text-white sm:text-5xl">اكتشف العقار والسيارة المناسبة لك</h1><p className="mt-4 max-w-2xl text-sm leading-8 text-[var(--on-brand-muted)] sm:text-base">استعرض العروض المتاحة للبيع والإيجار من مكان واحد، بتجربة عربية واضحة وسريعة.</p><div className="mt-8 grid max-w-4xl gap-3 rounded-2xl bg-white p-3 shadow-[0_18px_50px_rgb(3_26_20_/_22%)] md:grid-cols-[1fr_1fr_auto]"><Link href="/properties" className="flex min-h-12 items-center gap-3 rounded-xl border border-[var(--line)] px-4 text-sm font-bold text-[var(--ink)]"><Building2 size={18} className="text-[var(--brand)]" />البحث في العقارات</Link><Link href="/cars" className="flex min-h-12 items-center gap-3 rounded-xl border border-[var(--line)] px-4 text-sm font-bold text-[var(--ink)]"><CarFront size={18} className="text-[var(--brand)]" />البحث في السيارات</Link><Link href="/properties" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-5 text-sm font-bold text-white"><Search size={17} />استعرض العروض</Link></div></div></section>
+    <section className="page-container pt-8"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{destinations.map(([href, label, detail, Icon]) => <Link key={href} href={href} className="feature-link group"><span className="grid size-11 place-items-center rounded-xl bg-[var(--primary-soft)] text-[var(--brand)]"><Icon size={20}/></span><span><b className="block">{label}</b><small>{detail}</small></span><ArrowLeft className="mr-auto size-4 text-[var(--muted)] transition group-hover:-translate-x-1 group-hover:text-[var(--brand)]" /></Link>)}</div></section>
+    <section className="page-container"><SectionHeading eyebrow="عروض متاحة" title="أحدث العقارات" href="/properties" /><div className="listing-grid">{properties.length ? properties.map((item) => <Link key={item.id} href={`/properties/${item.id}${item.listingType === 'rental' ? '?type=rental' : ''}`} className="listing-card"><div className="relative aspect-[16/9] bg-[var(--muted-surface)]">{item.imageUrl ? <Image src={item.imageUrl} alt={item.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" /> : <span className="listing-placeholder"><Building2 size={28}/></span>}</div><div className="p-4"><p className="text-xs font-bold text-[var(--brand)]">{item.property_type ?? 'عقار'}</p><h3 className="mt-2 line-clamp-1 font-black">{item.title}</h3><p className="mt-2 text-sm text-[var(--muted)]">{item.location ?? 'الموقع غير محدد'}</p><strong className="mt-4 block text-lg text-[var(--brand)]">{formatEgp(item.price)}</strong></div></Link>) : <EmptyListing title="لا توجد عقارات متاحة حاليًا" href="/properties" />}</div></section>
+    <section className="page-container pt-0"><SectionHeading eyebrow="عروض متاحة" title="أحدث السيارات" href="/cars" /><div className="listing-grid">{vehicles.length ? vehicles.map((item) => <Link key={item.id} href={`/cars/${item.id}`} className="listing-card"><div className="relative aspect-[16/9] bg-[var(--muted-surface)]">{item.image_url ? <Image src={item.image_url} alt={item.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" /> : <span className="listing-placeholder"><CarFront size={28}/></span>}</div><div className="p-4"><p className="text-xs font-bold text-[var(--brand)]">{[item.brand, item.model].filter(Boolean).join(' · ') || 'سيارة'}</p><h3 className="mt-2 line-clamp-1 font-black">{item.title}</h3><strong className="mt-4 block text-lg text-[var(--brand)]">{formatEgp(item.price)}</strong></div></Link>) : <EmptyListing title="لا توجد سيارات متاحة حاليًا" href="/cars" />}</div></section>
+    <section className="page-container pt-0"><div className="grid gap-5 lg:grid-cols-[1.2fr_.8fr]"><article className="panel rounded-3xl p-6 sm:p-8"><p className="eyebrow">خدمات القِرش</p><h2 className="mt-2 text-2xl font-black">تجربة أبسط للبحث والمتابعة</h2><div className="mt-6 grid gap-4 sm:grid-cols-2"><Service icon={CheckCircle2} title="عروض واضحة" text="تفاصيل منظمة للعقار أو السيارة قبل التواصل."/><Service icon={Wrench} title="إدارة الأملاك" text="خدمة داخلية لمتابعة العقارات واحتياجاتها."/></div></article><aside className="rounded-3xl bg-[var(--accent-surface)] p-6 sm:p-8"><p className="eyebrow text-[var(--accent-foreground)]">هل تحتاج مساعدة؟</p><h2 className="mt-2 text-2xl font-black">تواصل مع فريق القِرش</h2><p className="mt-3 text-sm leading-7 text-[var(--muted)]">نساعدك في الاستفسار عن العروض والخدمات المتاحة.</p><Link href="/contact" className="mt-6 inline-flex rounded-xl bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white">تواصل معنا</Link></aside></div></section><PublicFooter /></main>;
 }
+function SectionHeading({ eyebrow, title, href }: { eyebrow: string; title: string; href: string }) { return <div className="mb-5 flex items-end justify-between gap-4"><div><p className="eyebrow">{eyebrow}</p><h2 className="mt-1 text-2xl font-black">{title}</h2></div><Link href={href} className="text-sm font-bold text-[var(--brand)]">عرض الكل</Link></div>; }
+function EmptyListing({ title, href }: { title: string; href: string }) { return <div className="panel col-span-full rounded-2xl p-8 text-center"><p className="font-bold">{title}</p><Link href={href} className="mt-3 inline-block text-sm font-bold text-[var(--brand)]">تصفح القسم</Link></div>; }
+function Service({ icon: Icon, title, text }: { icon: typeof CheckCircle2; title: string; text: string }) { return <div className="rounded-2xl bg-[var(--canvas)] p-4"><Icon className="text-[var(--brand)]" size={20}/><h3 className="mt-3 font-bold">{title}</h3><p className="mt-1 text-sm leading-6 text-[var(--muted)]">{text}</p></div>; }

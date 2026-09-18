@@ -97,7 +97,7 @@ export function CarsListingView({ view }: { view: 'all' | 'sale' | 'rent' }) {
           <button type="button" onClick={() => { setQuery(''); setLocation(''); }} className="mt-4 text-sm font-bold text-[var(--brand)]">مسح البحث والفلتر</button>
         </section>
       ) : (
-        <section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <section className="mt-8 grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
           {visibleVehicles.map((vehicle) => {
             const price = vehicle.listing_type === 'rent'
               ? vehicle.daily_price ?? vehicle.weekly_price ?? vehicle.monthly_price ?? 0

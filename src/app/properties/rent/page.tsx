@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { PublicHeader } from '@/components/public-header';
+import { PublicFooter } from '@/components/public-footer';
 import { PropertiesListingView } from '@/components/properties-listing-view';
 
 export default function RentPropertiesPage() {
@@ -38,7 +39,7 @@ export default function RentPropertiesPage() {
 
         {/* Listing View */}
         <PropertiesListingView view="rent" />
-      </section>
+      </section><PublicFooter />
     </main>
   );
 }

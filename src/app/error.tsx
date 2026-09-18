@@ -1,0 +1,2 @@
+'use client';
+export default function Error({ reset }: { error: Error; reset: () => void }) { return <main className="app-shell grid min-h-screen place-items-center p-5"><section className="panel w-full max-w-lg rounded-3xl p-8 text-center"><h1 className="text-2xl font-black">تعذّر تحميل الصفحة</h1><p className="mt-3 text-sm text-[var(--muted)]">حدث خطأ غير متوقع. يمكنك المحاولة مجددًا.</p><button onClick={reset} className="mt-6 rounded-xl bg-[var(--brand)] px-5 py-3 font-bold text-white">إعادة المحاولة</button></section></main>; }

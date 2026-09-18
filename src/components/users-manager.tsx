@@ -123,7 +123,7 @@ export function UsersManager({ users }: { users: User[] }) {
 
       {message && <p role="status" className="mt-4 rounded-xl border border-[var(--line)] p-3">{message}</p>}
 
-      <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <section className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
         {shown.map((u) => (
           <article key={u.id} className="panel rounded-2xl p-5">
             <h2 className="font-black">{u.full_name || 'مستخدم بلا اسم'}</h2>

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { PublicHeader } from '@/components/public-header';
+import { PublicFooter } from '@/components/public-footer';
 import { CarsListingView } from '@/components/cars-listing-view';
 
 export default function CarsPage() {
@@ -18,7 +19,7 @@ export default function CarsPage() {
           <Link href="/cars/rent" className="px-4 py-3 font-bold text-[var(--muted)] transition hover:text-[var(--ink)]">للإيجار</Link>
         </div>
         <CarsListingView view="all" />
-      </section>
+      </section><PublicFooter />
     </main>
   );
 }

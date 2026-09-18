@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { ArrowLeft, CalendarDays, CarFront, MapPin, Phone, Tag, Users } from 'lucide-react';
 import { PublicHeader } from '@/components/public-header';
+import { PublicFooter } from '@/components/public-footer';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { ImageLightbox } from '@/components/image-lightbox';
-import { formatEgp, listingStatusClass, listingStatusLabel } from '@/lib/listings';
+import { formatEgp, listingStatusClass, listingStatusLabel, publicListingStatuses } from '@/lib/listings';
 
 export default async function CarDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -17,6 +18,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
     .from('vehicle_listings')
     .select('*')
     .eq('id', id)
+    .in('status', publicListingStatuses)
     .maybeSingle();
 
   if (error || !listing) {
@@ -53,7 +55,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
             <h2 className="mt-3 text-2xl font-black">{formatEgp(price)}</h2>
             <p className="mt-2 text-sm text-[var(--muted)]">{listing.location ?? 'الموقع غير محدد'}</p>
 
-            <div className="mt-6 space-y-3 text-sm">
+            <div className="detail-facts mt-6 space-y-2 text-sm">
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span>الماركة</span><b>{listing.brand ?? '—'}</b></div>
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span>الموديل</span><b>{listing.model ?? '—'}</b></div>
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span>السنة</span><b>{listing.year ?? '—'}</b></div>
@@ -82,7 +84,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
 
           <aside className="panel rounded-[2rem] p-6">
             <p className="eyebrow">معلومات الإعلان</p>
-            <div className="mt-4 space-y-3 text-sm">
+            <div className="detail-facts mt-4 space-y-2 text-sm">
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span className="inline-flex items-center gap-2"><CalendarDays size={16} /> تاريخ الإضافة</span><b>{listing.created_at ? new Date(listing.created_at).toLocaleDateString('ar-EG') : '—'}</b></div>
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span className="inline-flex items-center gap-2"><MapPin size={16} /> الموقع</span><b>{listing.location ?? '—'}</b></div>
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span className="inline-flex items-center gap-2"><CarFront size={16} /> حالة السيارة</span><b>{listing.condition ?? 'مستعملة'}</b></div>
@@ -91,7 +93,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
             </div>
           </aside>
         </div>
-      </section>
+      </section><PublicFooter />
     </main>
   );
 }

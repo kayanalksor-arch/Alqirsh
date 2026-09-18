@@ -52,8 +52,8 @@
 *:where(.flex, .grid) > * { min-width: 0; }
 img, svg, video, canvas { max-width: 100%; }
 button, input, select, textarea { min-width: 0; }
-html { background: var(--canvas); }
-body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font-sans); }
+html { background: var(--canvas); overflow-x: clip; }
+body { min-width: 320px; margin: 0; overflow-x: clip; background: var(--canvas); color: var(--ink); font-family: var(--font-sans); }
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
@@ -83,8 +83,46 @@ select option { background: var(--popover); color: var(--popover-foreground); }
 .dashboard-controls > * { min-width: 0; width: 100%; }
 .modal-frame { width: min(100%, 48rem); max-height: min(90dvh, 48rem); overflow-y: auto; }
 
+/* Compact, token-led controls shared by public pages and the dashboard. */
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+input, select, textarea { font-size: max(16px, 1em); }
+button:disabled, input:disabled, select:disabled, textarea:disabled { opacity: .58; }
+.panel :where(button, a, input, select, textarea):focus-visible { outline-color: var(--focus); }
+
 /* Public pages use semantic tokens so every theme keeps sufficient contrast. */
 .public-header { background: var(--surface); color: var(--ink); }
+.public-footer { background: var(--surface-raised); color: var(--ink); }
+.page-container > .rounded-\[2rem\]:first-child { position: relative; overflow: hidden; border-radius: 1.25rem; background: var(--surface); box-shadow: 0 10px 28px rgb(12 42 31 / 6%); }
+.page-container > .rounded-\[2rem\]:first-child::before { position: absolute; inset-inline-start: 0; top: 0; width: .28rem; height: 100%; background: var(--brand); content: ''; }
+.page-container > .border-b { overflow-x: auto; scrollbar-width: none; }
+.page-container > .border-b::-webkit-scrollbar { display: none; }
+.page-container > .border-b > a { flex: 0 0 auto; }
+.page-container > .border-b > a:hover { color: var(--brand); }
+.detail-facts > * { display: flex; align-items: center; justify-content: space-between; gap: .75rem; border-radius: .75rem; background: var(--canvas); padding: .75rem; }
+.detail-facts > * > :first-child { color: var(--muted); }
+.detail-facts > * b { color: var(--ink); }
+.app-shell > section.mx-auto.max-w-6xl { width: min(100%, 72rem); padding-inline: clamp(.875rem, 3vw, 1.5rem); }
+.partner-grid { align-items: stretch; }
+.partner-card { min-height: 100%; box-shadow: 0 8px 20px rgb(12 42 31 / 4%); }
+.partner-dialog .partner-details > div { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border: 1px solid var(--line); border-radius: .75rem; padding: .75rem; }
+.partner-dialog dt { display: inline-flex; align-items: center; gap: .45rem; color: var(--muted); }
+.partner-dialog dd { min-width: 0; text-align: left; font-weight: 700; }
+.hero-shell { background: linear-gradient(125deg, #073e33 0%, #0b5949 62%, #164d42 100%); color: var(--on-brand); }
+.hero-shell .eyebrow { color: #c6eadf !important; }
+.hero-shell h1 { color: #fff !important; text-wrap: balance; }
+.hero-shell > .page-container > p:not(.eyebrow) { color: #e0f4ec !important; }
+.hero-shell .bg-white { background: var(--surface) !important; }
+.hero-shell .bg-white > a { color: var(--ink) !important; }
+.feature-link { display: flex; align-items: center; gap: .75rem; min-height: 5.25rem; padding: .85rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); box-shadow: 0 8px 20px rgb(12 42 31 / 4%); transition: transform .18s ease, border-color .18s ease; }
+.feature-link:hover { border-color: color-mix(in srgb, var(--brand) 42%, var(--line)); transform: translateY(-2px); }
+.feature-link small { display: block; margin-top: .2rem; font-size: .72rem; color: var(--muted); }
+.listing-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.listing-card { overflow: hidden; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); box-shadow: 0 8px 20px rgb(12 42 31 / 4%); transition: transform .18s ease, box-shadow .18s ease; }
+.listing-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.listing-placeholder { display: grid; min-height: 10rem; place-items: center; background: var(--primary-soft); color: var(--brand); }
+@media (min-width: 40rem) { .listing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 64rem) { .listing-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 80rem) { .listing-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .public-hero, .contact-hero { background: var(--brand-deep); color: var(--on-brand); }
 .public-hero-kicker, .contact-hero-kicker { color: color-mix(in srgb, var(--on-brand) 78%, var(--primary)); }
 .public-hero-copy, .contact-hero-copy { color: color-mix(in srgb, var(--on-brand) 86%, var(--primary)); }
@@ -172,6 +210,9 @@ article.panel.overflow-hidden > .grid.h-40 > img {
 .dark .bg-white, .dark .bg-stone-50 { background-color: var(--surface) !important; }
 .dark .text-slate-400, .dark .text-slate-500, .dark .text-slate-600 { color: var(--muted) !important; }
 .dark .border-slate-200 { border-color: var(--line) !important; }
+.dark .text-amber-700 { color: #f4c978 !important; }
+.dark .border-amber-300 { border-color: #765222 !important; }
+.dark .bg-black\/20 { background-color: rgb(0 0 0 / 36%) !important; }
 
 /* Legacy utility colors resolve to the semantic palette instead of a second theme. */
 .bg-white { background-color: var(--card); }
@@ -201,10 +242,96 @@ article.panel.overflow-hidden > .grid.h-40 > img {
 }
 
 @media (max-width: 639px) {
-  .page-container h1 { font-size: clamp(1.5rem, 6vw, 2rem); line-height: 1.25; }
-  .page-container h2 { line-height: 1.35; }
+  :root { --shadow: 0 6px 18px rgb(12 42 31 / 6%); }
+  .page-container { padding-inline: .875rem; padding-block: 1.5rem; }
+  .page-container h1 { font-size: clamp(1.5rem, 7vw, 2rem); line-height: 1.25; }
+  .page-container h2 { font-size: clamp(1.2rem, 5.5vw, 1.5rem); line-height: 1.35; }
+  .page-container h3 { line-height: 1.4; }
   .page-container .panel { border-radius: 1rem; }
   .page-container .flex-wrap { row-gap: .625rem; }
   .dashboard-content { padding: 1rem; }
   .modal-frame { max-height: calc(100dvh - 2rem); }
+  .hero-shell .page-container { padding-block: 1.75rem 2rem; }
+  .hero-shell h1 { font-size: clamp(1.7rem, 7.5vw, 2rem) !important; line-height: 1.22; letter-spacing: 0; }
+  .hero-shell p { line-height: 1.75; }
+  .hero-shell .bg-white { gap: .5rem; padding: .625rem; border-radius: .875rem; }
+  .feature-link { min-height: 4.5rem; gap: .625rem; padding: .75rem; border-radius: .875rem; }
+  .feature-link small { font-size: .68rem; }
+  .listing-grid { gap: .75rem; }
+  .listing-card { border-radius: .875rem; }
+  .listing-placeholder { min-height: 7.75rem; }
+  .listing-card > div:last-child { padding: .75rem; }
+  .listing-card h3 { font-size: .82rem; line-height: 1.4; }
+  .listing-card .text-sm { font-size: .7rem; }
+  .listing-card .text-lg { font-size: .9rem; }
+  .listing-card .mt-4 { margin-top: .6rem; }
+  .public-footer > div:first-child { gap: 1.5rem; padding-block: 1.75rem; }
+  .public-footer p { line-height: 1.6; }
+  .contact-hero { border-radius: 1.25rem; padding: 1.5rem; }
+  .contact-hero h1 { font-size: 1.75rem; }
+  .contact-hero .size-14 { width: 3rem; height: 3rem; }
+  .page-container > .rounded-\[2rem\]:first-child { padding: 1rem; border-radius: 1rem; }
+  .page-container > .rounded-\[2rem\]:first-child p { line-height: 1.65; }
+  .page-container > .border-b { margin-inline: -.875rem; padding-inline: .875rem; }
+  .page-container > .border-b > a { padding-inline: .75rem; font-size: .82rem; }
+  .detail-facts > * { padding: .625rem; font-size: .8rem; }
+  .app-shell > section.mx-auto.max-w-6xl { padding-block: 1.5rem; }
+  .app-shell > section.mx-auto.max-w-6xl .rounded-\[2rem\] { border-radius: 1rem; }
+  .app-shell > section.mx-auto.max-w-6xl .p-6 { padding: 1rem; }
+  .app-shell > section.mx-auto.max-w-6xl .p-5 { padding: .875rem; }
+  .partner-filter { margin-top: 1rem; padding: .75rem; }
+  .partner-card { border-radius: .875rem; padding: .625rem; }
+  .partner-card h2 { font-size: .8rem; line-height: 1.35; }
+  .partner-card > div:first-child img, .partner-card > div:first-child > div { height: 6.5rem; padding: .625rem; }
+  .partner-dialog .partner-details > div { align-items: flex-start; flex-direction: column; gap: .35rem; padding: .625rem; }
+  .partner-dialog dd { text-align: right; }
+
+  /* Listing cards and filter controls should retain useful density at 320px. */
+  .panel.mt-8.grid, .panel.mt-5.grid { gap: .625rem; padding: .75rem; border-radius: 1rem; }
+  .panel.mt-8.rounded-2xl.p-10, .panel.mt-5.rounded-2xl.p-10 { padding: 1.5rem 1rem; }
+  .panel.overflow-hidden.rounded-2xl > div:not(.relative) { padding: .75rem; }
+  .panel.overflow-hidden.rounded-2xl h2 { min-height: auto; font-size: .95rem; line-height: 1.4; }
+  .panel.overflow-hidden.rounded-2xl .text-lg { font-size: 1rem; }
+  .panel.overflow-hidden.rounded-2xl .text-xl { font-size: 1.1rem; }
+  .panel.overflow-hidden.rounded-2xl .mt-4 { margin-top: .75rem; }
+  /* Two-column catalogue cards: concise but still legible at 320px. */
+  .mt-8.grid.grid-cols-2 > article.panel,
+  .mt-5.grid.grid-cols-2 > article.panel,
+  .mt-4.grid.grid-cols-2 > article.panel { border-radius: .875rem; }
+  .mt-8.grid.grid-cols-2 > article.panel .p-4,
+  .mt-5.grid.grid-cols-2 > article.panel .p-5,
+  .mt-4.grid.grid-cols-2 > article.panel .p-3 { padding: .75rem; }
+  .mt-8.grid.grid-cols-2 > article.panel h2,
+  .mt-5.grid.grid-cols-2 > article.panel h2,
+  .mt-4.grid.grid-cols-2 > article.panel h2 { font-size: .82rem; line-height: 1.35; }
+  .mt-8.grid.grid-cols-2 > article.panel .text-lg,
+  .mt-5.grid.grid-cols-2 > article.panel .text-lg { font-size: .95rem; }
+  .mt-8.grid.grid-cols-2 > article.panel .text-sm,
+  .mt-5.grid.grid-cols-2 > article.panel .text-sm { font-size: .7rem; }
+  .mt-8.grid.grid-cols-2 > article.panel .aspect-\[16\/10\],
+  .mt-8.grid.grid-cols-2 > article.panel .aspect-\[16\/9\] { aspect-ratio: 4 / 3; }
+
+  /* Dashboard pages use direct utility padding; normalize it without affecting desktop. */
+  .dashboard-content, .app-shell > main.p-5, .app-shell > main.px-5 { padding: 1rem; }
+  .app-shell > header.px-5 { padding: 1rem; }
+  .app-shell > header.py-5 { padding-block: .875rem; }
+  .app-shell .panel.rounded-2xl.p-5 { padding: .875rem; }
+  .app-shell .panel.rounded-2xl.p-6 { padding: 1rem; }
+  .app-shell .panel.rounded-2xl.p-8 { padding: 1.25rem; }
+  .app-shell .text-3xl { font-size: 1.65rem; }
+  .app-shell .text-4xl { font-size: 1.85rem; }
+  .app-shell .grid.gap-4 { gap: .75rem; }
+  .app-shell .grid.gap-5 { gap: .875rem; }
+  .app-shell .mt-6 { margin-top: 1rem; }
+  .app-shell .mt-8 { margin-top: 1.25rem; }
+  .responsive-table { margin-inline: -.125rem; width: calc(100% + .25rem); border-radius: .75rem; }
+  .responsive-table table { min-width: 36rem; }
+  .fixed.inset-0 { padding: .75rem; }
+  .fixed.inset-0 form, .fixed.inset-0 > .modal-frame, .fixed.inset-0 > div { max-width: 100%; border-radius: 1rem; }
+  .fixed.inset-0 form { padding: 1rem !important; }
+  .fixed.inset-0 form input, .fixed.inset-0 form select, .fixed.inset-0 form textarea { min-height: 2.75rem; padding: .625rem .75rem; }
+  .offer-details-dialog { width: calc(100vw - 1.5rem); border-radius: 1rem; }
+  .offer-details-content { padding: 1rem; }
+  .offer-details-image { height: min(13rem, 58vw); }
+  .offer-details-facts { gap: .5rem; margin-top: 1rem; }
 }

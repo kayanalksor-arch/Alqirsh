@@ -182,7 +182,7 @@ export function PartnersManager({ partners: initialPartners }: { partners: Partn
           </button>
         </section>
       ) : (
-        <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <section className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
           {shown.map((partner) => (
             <article key={partner.id} className="panel group flex h-full flex-col rounded-2xl p-5 transition hover:-translate-y-1 hover:border-[var(--brand)]">
               <div className="mb-4 grid h-28 place-items-center overflow-hidden rounded-2xl bg-[var(--canvas)] p-3">

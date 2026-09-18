@@ -240,7 +240,7 @@ export function PropertiesListingView({ view }: { view: 'all' | 'sale' | 'rent' 
           </button>
         </section>
       ) : (
-        <section className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <section className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((offer) => {
             const images = allImages[offer.id] || [];
             const isRental = rentOffers.some((r) => r.id === offer.id);
