@@ -42,7 +42,7 @@ export function CarsListingView({ view }: { view: 'all' | 'sale' | 'rent' }) {
         .order('created_at', { ascending: false });
 
       if (loadError) {
-        setError(loadError.message);
+        setError('تعذّر تحميل السيارات. يُرجى المحاولة مرة أخرى.');
       } else {
         setVehicles((data ?? []) as Vehicle[]);
       }

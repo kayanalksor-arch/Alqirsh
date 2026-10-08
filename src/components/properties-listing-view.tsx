@@ -99,8 +99,8 @@ export function PropertiesListingView({ view }: { view: 'all' | 'sale' | 'rent' 
         setSaleOffers((sales ?? []) as Offer[]);
         setRentOffers((rentals ?? []) as Offer[]);
         setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'حدث خطأ أثناء تحميل البيانات');
+      } catch {
+        setError('تعذّر تحميل العقارات. يُرجى المحاولة مرة أخرى.');
       } finally {
         setLoading(false);
       }

@@ -13,14 +13,22 @@ async function authorizeAdmin() {
   return user;
 }
 
+async function recordUserAction(actorId:string,action:string,targetId:string,description:string){
+  const admin=createAdminClient();
+  const {data:actor}=await admin.from('profiles').select('full_name,email').eq('id',actorId).maybeSingle();
+  const {data:target}=await admin.from('profiles').select('full_name').eq('id',targetId).maybeSingle();
+  await admin.from('activity_logs').insert({actor_id:actorId,actor_name:actor?.full_name,actor_email:actor?.email,section:'users',action,entity_id:targetId,entity_label:target?.full_name??targetId,description,sensitive:true,details:{}});
+}
+
 export async function createDashboardUser(input: { fullName: string; email: string; password: string; role: 'admin'|'property_manager'|'member'; status: 'active'|'inactive' }) {
-  await authorizeAdmin();
+  const actor=await authorizeAdmin();
   if (!input.fullName.trim() || !/^\S+@\S+\.\S+$/.test(input.email) || input.password.length < 8) throw new Error('أدخل اسماً وبريداً صحيحاً وكلمة مرور من 8 أحرف على الأقل.');
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.createUser({ email: input.email.trim().toLowerCase(), password: input.password, email_confirm: true, user_metadata: { full_name: input.fullName.trim() }, app_metadata: { status: input.status } });
   if (error || !data.user) throw new Error(error?.message ?? 'تعذر إنشاء المستخدم.');
   const { error: profileError } = await admin.from('profiles').upsert({ id: data.user.id, full_name: input.fullName.trim(), email: input.email.trim().toLowerCase(), role: input.role, status: input.status }, { onConflict: 'id' });
   if (profileError) { await admin.auth.admin.deleteUser(data.user.id); throw new Error(profileError.message); }
+  await recordUserAction(actor.id,'create',data.user.id,'تم إنشاء مستخدم.');
   revalidatePath('/dashboard/users');
 }
 
@@ -32,6 +40,7 @@ export async function updateDashboardUser(id: string, input: { fullName: string;
   if (error) throw new Error(error.message);
   const { error: authError } = await admin.auth.admin.updateUserById(id, { app_metadata: { status: input.status }, user_metadata: { full_name: input.fullName.trim() } });
   if (authError) throw new Error(authError.message);
+  await recordUserAction(actor.id,'update',id,'تم تحديث بيانات المستخدم أو دوره أو حالته.');
   revalidatePath('/dashboard/users');
 }
 
@@ -45,6 +54,7 @@ export async function deactivateDashboardUser(id: string) {
   if (error) throw new Error(error.message);
   const { error: authError } = await admin.auth.admin.updateUserById(id, { ban_duration: '876000h' });
   if (authError) throw new Error(authError.message);
+  await recordUserAction(actor.id,'deactivate',id,'تم إيقاف حساب المستخدم.');
   revalidatePath('/dashboard/users');
 }
 
@@ -76,6 +86,7 @@ export async function deleteDashboardUser(id: string) {
 
   const { error: authError } = await admin.auth.admin.deleteUser(id);
   if (authError) throw new Error(authError.message);
+  await recordUserAction(actor.id,'delete',id,'تم حذف حساب المستخدم.');
 
   revalidatePath('/dashboard/users');
 }

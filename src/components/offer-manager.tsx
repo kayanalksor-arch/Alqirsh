@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 /* eslint-disable @next/next/no-img-element */
 
 import { Download, Edit3, ImagePlus, LoaderCircle, Plus, Search, Trash2, X } from 'lucide-react';
@@ -45,11 +45,10 @@ async function ensureManagerProfile(db: ReturnType<typeof createClient>) {
   const { data: { user }, error: userError } = await db.auth.getUser();
   if (userError || !user) throw new Error('يجب تسجيل الدخول أولاً.');
 
-  const { data: canManage, error: permissionError } = await db.rpc('is_platform_manager');
-  if (permissionError) throw permissionError;
-  if (!canManage) throw new Error('لا توجد صلاحية كافية لإدارة العروض.');
-
-  return { user, role: 'property_manager' };
+  const {data:profile}=await db.from('profiles').select('role').eq('id',user.id).maybeSingle();
+  const {data:permissions}=await db.from('section_permissions').select('*').eq('user_id',user.id).maybeSingle();
+  const allowed=profile?.role==='admin'||Boolean(permissions&&(permissions.properties_sale_view||permissions.properties_sale_create||permissions.properties_sale_update||permissions.properties_rent_view||permissions.properties_rent_create||permissions.properties_rent_update));
+  if(!allowed)throw new Error('ليس لديك صلاحية لتنفيذ هذه العملية.');  return { user, role: 'property_manager' };
 }
 
 export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
@@ -116,7 +115,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   const locations = useMemo(() => [...new Set(offers.map((offer) => offer.location).filter(Boolean))] as string[], [offers]);
   const statuses = listingStatusesForType(kind === 'rental' ? 'rent' : 'sale');
   const normalizeText = (value: string) => value.toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
-  const formatNumber = (value: number | null) => value === null ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
+  const formatNumber = (value: number | null) => value === null ? '—' : new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 2 }).format(value);
 
   const shown = useMemo(
     () =>
@@ -454,7 +453,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
             <div className="mt-5 space-y-3">
               <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">الحالة</p>
-                <p className="mt-2 font-bold">{viewing.status}</p>
+                <p className="mt-2 font-bold">{listingStatusLabel(viewing.status, kind === 'rental' ? 'rent' : 'sale')}</p>
               </div>
               <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">السعر</p>

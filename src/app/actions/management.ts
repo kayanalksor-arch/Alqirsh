@@ -9,9 +9,8 @@ async function authorize() {
   const db = await createClient();
   const { data: { user } } = await db.auth.getUser();
   if (!user) throw new Error('يجب تسجيل الدخول أولاً.');
-  const { data: profile, error } = await db.from('profiles').select('role').eq('id', user.id).single();
-  if (error || !profile || !['admin', 'property_manager'].includes(profile.role)) throw new Error('ليس لديك صلاحية إدارة الأملاك.');
-  return db;
+  const { data: allowed, error } = await db.rpc('has_section_permission',{permission_name:'properties.management.manage'});
+  if (error || !allowed) throw new Error('ليس لديك صلاحية لتنفيذ هذه العملية.');  return db;
 }
 
 function clean(payload: Record<string, unknown>) {

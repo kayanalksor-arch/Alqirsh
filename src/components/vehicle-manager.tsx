@@ -4,8 +4,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CarFront, Edit3, Plus, Search, Trash2, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { deleteVehicle as deleteVehicleAction, getVehicleImages, getVehiclePermissionSnapshot, listVehicleBookings, saveVehicle as saveVehicleAction, setVehicleBookingStatus } from '@/app/actions/vehicles';
+import { VehicleBookingButton } from '@/components/vehicle-booking-button';
 import { addBrandWatermark } from '@/lib/image-watermark';
-import { formatEgp, listingStatusClass, listingStatusLabel, listingStatusesForType } from '@/lib/listings';
+import { bookingStatusLabel, formatEgp, listingStatusClass, listingStatusLabel, listingStatusesForType } from '@/lib/listings';
 
 type Vehicle = {
   id: string;
@@ -79,14 +81,18 @@ const blank = (): FormState => ({
   contact_phone: '',
 });
 
-async function ensureManager() {
+async function ensureManager(type: 'sale'|'rent' = 'rent', action: 'view'|'add'|'edit'|'delete' = 'view') {
   const db = createClient();
   const { data: { user }, error: userError } = await db.auth.getUser();
   if (userError || !user) throw new Error('يجب تسجيل الدخول أولاً.');
-  const { data: canManage, error: permissionError } = await db.rpc('is_platform_manager');
-  if (permissionError) throw permissionError;
-  if (!canManage) throw new Error('لا توجد صلاحية كافية لإدارة السيارات.');
-  return user.id;
+  const { data: profile } = await db.from('profiles').select('role').eq('id',user.id).maybeSingle();
+  if (profile?.role !== 'admin') {
+    const { data: permissions } = await db.from('section_permissions').select('*').eq('user_id',user.id).maybeSingle();
+    const key=`cars_${type}_${action==='view'?'view':action==='add'?'create':action==='delete'?'delete':'update'}`;
+    const actionAccess = permissions?.[key as keyof typeof permissions];
+    const access = type === 'rent' ? permissions?.cars_rent_view || permissions?.cars_rent_create || permissions?.cars_rent_update : permissions?.cars_sale_view || permissions?.cars_sale_create || permissions?.cars_sale_update;
+    if (!access || !actionAccess) throw new Error('ليس لديك صلاحية لتنفيذ هذه العملية.');
+  }  return user.id;
 }
 
 export function VehicleManager() {
@@ -101,26 +107,32 @@ export function VehicleManager() {
   const [editing, setEditing] = useState<Vehicle | null>(null);
   const [form, setForm] = useState<FormState>(blank());
   const [pendingImages, setPendingImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<{id:string;public_url:string;is_primary:boolean}[]>([]);
   const [saving, setSaving] = useState(false);
   
   const [viewOpen, setViewOpen] = useState(false);
   const [viewing, setViewing] = useState<Vehicle | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState<Vehicle | null>(null);
+  const [bookings,setBookings]=useState<Array<{id:string;vehicle_id:string;customer_name?:string;customer_phone?:string;starts_at:string;ends_at:string;total_amount:number;status:string;vehicle_listings:{title:string}|null}>>([]);
+  const [bookingPermissions,setBookingPermissions]=useState<Awaited<ReturnType<typeof getVehiclePermissionSnapshot>>>(null);
+  const [bookingMessage,setBookingMessage]=useState('');
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
+      const permissions=await getVehiclePermissionSnapshot();setBookingPermissions(permissions);
+      const allowedTypes=['sale','rent'].filter((type)=>type==='sale'?permissions?.canViewSale:permissions?.canViewRent);
       const { data, error } = await createClient()
         .from('vehicle_listings')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        setMessage('تعذر تحميل السيارات: ' + error.message);
+        setMessage('تعذر تحميل السيارات. يرجى المحاولة مرة أخرى.');
         setVehicles([]);
       } else {
-        setVehicles((data ?? []) as Vehicle[]);
+        setVehicles(((data ?? []) as Vehicle[]).filter((vehicle)=>allowedTypes.includes(vehicle.listing_type==='sale'?'sale':'rent')));
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'تعذر تحميل السيارات.');
@@ -134,6 +146,7 @@ export function VehicleManager() {
     const timer = window.setTimeout(() => { void load(); }, 0);
     return () => window.clearTimeout(timer);
   }, [load]);
+  useEffect(()=>{void listVehicleBookings().then((rows)=>setBookings(rows as unknown as typeof bookings)).catch(()=>setBookingMessage('تعذر تحميل الحجوزات. يرجى المحاولة مرة أخرى.'));},[]);
 
   const filtered = useMemo(() => {
     return vehicles.filter((v) => {
@@ -176,7 +189,9 @@ export function VehicleManager() {
       setForm(blank());
     }
     setPendingImages([]);
+    setExistingImages([]);
     setFormOpen(true);
+    if (item) void getVehicleImages(item.id).then(setExistingImages).catch((error) => setMessage(error instanceof Error ? error.message : 'تعذر تحميل صور السيارة.'));
   }
 
   function handleImageAdd(evt: React.ChangeEvent<HTMLInputElement>) {
@@ -213,13 +228,16 @@ export function VehicleManager() {
 
     setSaving(true);
     try {
-      const userId = await ensureManager();
+      await ensureManager(form.listing_type, editing ? 'edit' : 'add');
       const db = createClient();
 
-      let imageUrl = editing?.image_url || null;
 
-      if (pendingImages.length > 0) {
-        const file = await addBrandWatermark(pendingImages[0]);
+
+      const uploadedPaths: string[] = [];
+      if (pendingImages.length + existingImages.length > 6) throw new Error('يمكن إضافة 6 صور كحد أقصى للسيارة.');
+      for (const image of pendingImages) {
+        if (!['image/jpeg','image/png','image/webp'].includes(image.type) || image.size > 5 * 1024 * 1024) throw new Error('يُرجى اختيار صورة بصيغة JPG أو PNG أو WebP، وألا يتجاوز حجمها 5 ميجابايت.');
+        const file = await addBrandWatermark(image);
         const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
         const path = `vehicles/${editing?.id || crypto.randomUUID()}/${crypto.randomUUID()}.${ext}`;
 
@@ -228,7 +246,8 @@ export function VehicleManager() {
           .upload(path, file, { contentType: file.type, upsert: false });
 
         if (uploadErr) throw new Error('فشل الرفع: ' + uploadErr.message);
-        imageUrl = db.storage.from('listing-images').getPublicUrl(path).data.publicUrl;
+
+        uploadedPaths.push(path);
       }
 
       const payload = {
@@ -252,24 +271,18 @@ export function VehicleManager() {
         description: form.description.trim() || null,
         contact_name: form.contact_name.trim() || null,
         contact_phone: form.contact_phone.trim() || null,
-        image_url: imageUrl,
+
       };
 
-      if (editing) {
-        const { error } = await db.from('vehicle_listings').update(payload).eq('id', editing.id);
-        if (error) throw error;
-        setMessage('تم التحديث بنجاح');
-      } else {
-        const { error } = await db.from('vehicle_listings').insert({ ...payload, created_by: userId });
-        if (error) throw error;
-        setMessage('تمت الإضافة بنجاح');
-      }
+      const safePayload = payload;
+      await saveVehicleAction(safePayload, editing?.id ?? null, uploadedPaths);
+      setMessage(editing ? 'تم التحديث بنجاح' : 'تمت الإضافة بنجاح');
 
       setFormOpen(false);
       setPendingImages([]);
       await load();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'خطأ');
+      setMessage(e instanceof Error && !e.message.includes('supabase') ? e.message : 'تعذر حفظ السيارة. يرجى مراجعة البيانات والمحاولة مرة أخرى.');
     } finally {
       setSaving(false);
     }
@@ -279,15 +292,13 @@ export function VehicleManager() {
     if (!deleting) return;
     setSaving(true);
     try {
-      await ensureManager();
-      const { error } = await createClient().from('vehicle_listings').delete().eq('id', deleting.id);
-      if (error) throw error;
+      await deleteVehicleAction(deleting.id);
       setMessage('تم الحذف بنجاح');
       setDeleteOpen(false);
       setDeleting(null);
       await load();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'خطأ');
+      setMessage(e instanceof Error && !e.message.includes('supabase') ? e.message : 'تعذر حذف السيارة. يرجى المحاولة مرة أخرى.');
     } finally {
       setSaving(false);
     }
@@ -325,13 +336,15 @@ export function VehicleManager() {
             <option key={status} value={status}>{listingStatusLabel(status, typeFilter || undefined)}</option>
           ))}
         </select>
-        <button
+        {((typeFilter==='sale'&&bookingPermissions?.canAddSale)||(typeFilter==='rent'&&bookingPermissions?.canAddRent)||(!typeFilter&&(bookingPermissions?.canAddSale||bookingPermissions?.canAddRent)))&&<button
           onClick={() => openForm()}
           className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-[var(--brand)] px-3 font-bold text-white text-sm whitespace-nowrap"
         >
           <Plus size={16} /> إضافة
-        </button>
+        </button>}
       </div>
+
+      {bookingPermissions?.canViewBookings&&<section className="panel mt-4 overflow-x-auto rounded-2xl p-4"><h2 className="mb-3 font-black">حجوزات السيارات</h2>{bookingMessage&&<p className="mb-3 text-sm text-red-600">{bookingMessage}</p>}<table className="w-full min-w-[700px] text-right text-sm"><thead><tr><th className="p-2">السيارة</th><th className="p-2">العميل</th><th className="p-2">الاستلام</th><th className="p-2">الإعادة</th><th className="p-2">الإجمالي</th><th className="p-2">الحالة</th><th className="p-2">الإجراء</th></tr></thead><tbody>{bookings.map((booking)=><tr key={booking.id} className="border-t border-[var(--line)]"><td className="p-2">{booking.vehicle_listings?.title}</td><td className="p-2">{bookingPermissions.canViewCustomerDetails?`${booking.customer_name??''} ${booking.customer_phone??''}`:'—'}</td><td className="p-2">{new Date(booking.starts_at).toLocaleString('ar-EG',{timeZone:'Africa/Cairo'})}</td><td className="p-2">{new Date(booking.ends_at).toLocaleString('ar-EG',{timeZone:'Africa/Cairo'})}</td><td className="p-2">{Number(booking.total_amount).toLocaleString('ar-EG')} ج.م</td><td className="p-2">{bookingStatusLabel(booking.status)}</td><td className="p-2">{booking.status==='confirmed'&&bookingPermissions.canCancel&&<button className="text-red-600" onClick={async()=>{if(!confirm('هل تريد إلغاء هذا الحجز؟'))return;try{await setVehicleBookingStatus(booking.id,'cancelled');setBookings((old)=>old.map((item)=>item.id===booking.id?{...item,status:'cancelled'}:item));}catch{setBookingMessage('تعذر إلغاء الحجز. يرجى المحاولة مرة أخرى.');}}}>إلغاء الحجز</button>}</td></tr>)}</tbody></table></section>}
 
       {message && (
         <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3 text-sm">
@@ -371,6 +384,7 @@ export function VehicleManager() {
                 <p className="mt-2 text-base font-black text-[var(--brand)]">
                   {formatEgp(v.price ?? v.daily_price)}
                 </p>
+                {v.listing_type === 'rent' && <div className="mt-2"><VehicleBookingButton vehicle={v}/></div>}
                 <div className="mt-2 flex gap-1">
                   <button
                     onClick={() => { setViewing(v); setViewOpen(true); }}
@@ -378,18 +392,18 @@ export function VehicleManager() {
                   >
                     عرض
                   </button>
-                  <button
+                  {(v.listing_type==='sale'?bookingPermissions?.canEditSale:bookingPermissions?.canEditRent)&&<button
                     onClick={() => openForm(v)}
                     className="flex-1 rounded-lg border border-[var(--line)] px-2 py-1.5 text-xs font-bold"
                   >
                     <Edit3 size={12} className="inline" />
-                  </button>
-                  <button
+                  </button>}
+                  {(v.listing_type==='sale'?bookingPermissions?.canDeleteSale:bookingPermissions?.canDeleteRent)&&<button
                     onClick={() => { setDeleting(v); setDeleteOpen(true); }}
                     className="flex-1 rounded-lg border border-red-200 px-2 py-1.5 text-xs font-bold text-red-600"
                   >
                     <Trash2 size={12} className="inline" />
-                  </button>
+                  </button>}
                 </div>
               </div>
             </article>
@@ -602,7 +616,8 @@ export function VehicleManager() {
                 <label className="block text-sm font-bold mb-2">الصورة</label>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
                   onChange={handleImageAdd}
                   className="w-full text-sm"
                 />
@@ -622,6 +637,7 @@ export function VehicleManager() {
                     ))}
                   </div>
                 )}
+                {editing && <div className="mt-3"><p className="text-sm font-bold">معرض الصور الحالي</p>{existingImages.length === 0 ? <p className="mt-2 text-xs text-[var(--muted)]">لا توجد صور في المعرض. ستظل الصورة الأساسية الحالية محفوظة.</p> : <div className="mt-2 grid grid-cols-3 gap-2">{existingImages.map((image) => <div key={image.id} className="relative"><img src={image.public_url} alt={`صورة السيارة ${editing.title}`} className="h-24 w-full rounded-lg object-cover"/><span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 text-[9px] text-white">{image.is_primary?'الصورة الأساسية':''}</span></div>)}</div>}</div>}
               </div>
 
               {/* Actions */}

@@ -83,6 +83,15 @@ export function listingTypeLabel(type: string | null) {
   return 'إعلان';
 }
 
+/** User-facing Arabic labels for known database values. Unknown values stay neutral. */
+export function roleLabel(role: string | null | undefined) {
+  return ({ admin: 'مدير النظام', property_manager: 'مدير الأملاك', member: 'عضو' } as Record<string, string>)[role ?? ''] ?? 'مستخدم';
+}
+
+export function bookingStatusLabel(status: string | null | undefined) {
+  return ({ confirmed: 'مؤكد', cancelled: 'ملغي', completed: 'مكتمل', pending: 'قيد الانتظار' } as Record<string, string>)[status ?? ''] ?? 'غير محدد';
+}
+
 export function getVehicleImageUrl(listing: Pick<VehicleListing, 'image_url'>, fallback = '/brand/alqirsh-icon.png') {
   return listing.image_url || fallback;
 }

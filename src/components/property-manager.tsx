@@ -67,11 +67,10 @@ async function ensureManagerProfile(db: ReturnType<typeof createClient>) {
   } = await db.auth.getUser();
   if (userError || !user) throw new Error('يجب تسجيل الدخول أولاً.');
 
-  const { data: canManage, error: permissionError } = await db.rpc('is_platform_manager');
-  if (permissionError) throw permissionError;
-  if (!canManage) throw new Error('لا توجد صلاحية كافية لإدارة العقارات.');
-
-  return { user, role: 'property_manager' };
+  const {data:profile}=await db.from('profiles').select('role').eq('id',user.id).maybeSingle();
+  const {data:permissions}=await db.from('section_permissions').select('*').eq('user_id',user.id).maybeSingle();
+  const allowed=profile?.role==='admin'||Boolean(permissions&&(permissions.properties_sale_view||permissions.properties_sale_create||permissions.properties_sale_update||permissions.properties_rent_view||permissions.properties_rent_create||permissions.properties_rent_update));
+  if(!allowed)throw new Error('ليس لديك صلاحية لتنفيذ هذه العملية.');  return { user, role: 'property_manager' };
 }
 
 export function PropertyManager() {
@@ -95,7 +94,12 @@ export function PropertyManager() {
     const db = createClient();
     try {
       const { role } = await ensureManagerProfile(db);
-      if (!['admin', 'property_manager'].includes(role)) {
+      const {data:{user}}=await db.auth.getUser();
+      const {data:profile}=user?await db.from('profiles').select('role').eq('id',user.id).maybeSingle():{data:null};
+      const {data:permissions}=user?await db.from('section_permissions').select('properties_sale_view,properties_sale_create,properties_sale_update,properties_rent_view,properties_rent_create,properties_rent_update').eq('user_id',user.id).maybeSingle():{data:null};
+      const canSeeSale=profile?.role==='admin'||permissions?.properties_sale_view===true;
+      const canSeeRent=profile?.role==='admin'||permissions?.properties_rent_view===true;
+      if (!['admin', 'property_manager'].includes(role)||(!canSeeSale&&!canSeeRent)) {
         setMessage('لا توجد صلاحية كافية لعرض هذه العقارات.');
         setProperties([]);
         setLoading(false);
@@ -134,7 +138,7 @@ export function PropertyManager() {
             kind: 'rental' as const,
           })),
         ];
-        setProperties(allProperties);
+        setProperties(allProperties.filter((property)=>property.kind==='sale'?canSeeSale:canSeeRent));
       }
 
       // Load images for sale properties

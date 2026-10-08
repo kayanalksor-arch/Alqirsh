@@ -1,6 +1,9 @@
 ﻿'use client';
 import { FormEvent, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createDashboardUser, deactivateDashboardUser, deleteDashboardUser, updateDashboardUser } from '@/app/actions/users';
+import { saveUnifiedPermissions } from '@/app/actions/vehicles';
+import { roleLabel } from '@/lib/listings';
 
 type User = {
   id: string;
@@ -9,7 +12,11 @@ type User = {
   role: 'admin' | 'property_manager' | 'member';
   status: 'active' | 'inactive';
   created_at: string | null;
+  vehicle_permissions?: Array<Record<string, boolean>>;
+  section_permissions?: Array<Record<string, boolean|string>>;
 };
+const permissionGroups:[string,string[]][]=[['عقارات البيع',['properties_sale_view','properties_sale_create','properties_sale_update','properties_sale_delete','properties_sale_status']],['عقارات الإيجار',['properties_rent_view','properties_rent_create','properties_rent_update','properties_rent_delete','properties_rent_status']],['إدارة الأملاك',['properties_management_view','properties_management_manage']],['السيارات للبيع',['cars_sale_view','cars_sale_create','cars_sale_update','cars_sale_delete']],['السيارات للإيجار',['cars_rent_view','cars_rent_create','cars_rent_update','cars_rent_delete','cars_images_manage']],['الحجوزات',['bookings_view','bookings_create','bookings_update','bookings_cancel','bookings_customer_details']],['المرفقات والطلبات',['properties_images_manage','properties_requests_view','properties_requests_manage']],['إدارة المستخدمين والسجل',['users_permissions_manage','activity_logs_view']]];
+const permissionLabels:Record<string,string>={properties_sale_view:'عرض',properties_sale_create:'إضافة',properties_sale_update:'تعديل',properties_sale_delete:'أرشفة أو حذف',properties_sale_status:'تغيير الحالة',properties_rent_view:'عرض',properties_rent_create:'إضافة',properties_rent_update:'تعديل',properties_rent_delete:'أرشفة أو حذف',properties_rent_status:'تغيير الحالة',properties_management_view:'عرض سجلات الأملاك',properties_management_manage:'إدارة سجلات الأملاك',cars_sale_view:'عرض',cars_sale_create:'إضافة',cars_sale_update:'تعديل',cars_sale_delete:'أرشفة أو حذف',cars_rent_view:'عرض',cars_rent_create:'إضافة',cars_rent_update:'تعديل',cars_rent_delete:'أرشفة أو حذف',cars_images_manage:'إدارة الصور',bookings_view:'عرض الحجوزات',bookings_create:'إنشاء حجز',bookings_update:'تعديل الحجز',bookings_cancel:'إلغاء الحجز',bookings_customer_details:'عرض بيانات العملاء',properties_images_manage:'إدارة الصور والمرفقات',properties_requests_view:'عرض الطلبات',properties_requests_manage:'إدارة الطلبات',users_permissions_manage:'إدارة المستخدمين والصلاحيات',activity_logs_view:'عرض سجل الحركة'};
 
 const empty: {
   fullName: string;
@@ -26,6 +33,7 @@ const empty: {
 };
 
 export function UsersManager({ users }: { users: User[] }) {
+  const router=useRouter();
   const [q, setQ] = useState('');
   const [role, setRole] = useState('');
   const [status, setStatus] = useState('');
@@ -34,6 +42,8 @@ export function UsersManager({ users }: { users: User[] }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  const [permissionsUser,setPermissionsUser]=useState<User|null>(null);
+  const [vehiclePermissions,setVehiclePermissions]=useState<Record<string,boolean>>({});
 
   const shown = useMemo(
     () =>
@@ -128,7 +138,7 @@ export function UsersManager({ users }: { users: User[] }) {
           <article key={u.id} className="panel rounded-2xl p-5">
             <h2 className="font-black">{u.full_name || 'مستخدم بلا اسم'}</h2>
             <p className="mt-1 break-all text-sm text-[var(--muted)]">{u.email}</p>
-            <p className="mt-3 text-sm">{u.role} · {u.status === 'active' ? 'نشط' : 'غير نشط'}</p>
+            <p className="mt-3 text-sm">{roleLabel(u.role)} · {u.status === 'active' ? 'نشط' : 'غير نشط'}</p>
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
@@ -137,6 +147,7 @@ export function UsersManager({ users }: { users: User[] }) {
               >
                 تعديل
               </button>
+              <button type="button" onClick={()=>{setPermissionsUser(u);setVehiclePermissions(u.section_permissions?.[0] as Record<string,boolean>??{});}} className="rounded-lg border border-emerald-300 px-3 py-2 text-sm font-bold">الصلاحيات</button>
 
               <button
                 type="button"
@@ -251,6 +262,7 @@ export function UsersManager({ users }: { users: User[] }) {
           </form>
         </div>
       )}
+      {permissionsUser&&<div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"><section className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-[var(--surface)] p-6" dir="rtl"><h2 className="text-xl font-black">صلاحيات {permissionsUser.full_name||permissionsUser.email}</h2><p className="mt-1 text-sm text-[var(--muted)]">الدور: {roleLabel(permissionsUser.role)} · الحالة: {permissionsUser.status==='active'?'نشط':'غير نشط'}</p>{permissionGroups.map(([group,keys])=><fieldset key={group} className="mt-5 rounded-2xl border border-[var(--line)] p-4"><legend className="px-2 font-black">{group}</legend><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{keys.map(key=><label key={key} className="flex items-center gap-2 rounded-lg p-2 text-sm"><input type="checkbox" checked={vehiclePermissions[key]===true} onChange={event=>setVehiclePermissions({...vehiclePermissions,[key]:event.target.checked})}/>{permissionLabels[key]}</label>)}</div></fieldset>)}<p className="mt-3 text-xs text-[var(--muted)]">آخر تحديث: {String(permissionsUser.section_permissions?.[0]?.updated_at??'لا يوجد')}</p><div className="mt-5 flex justify-end gap-2"><button onClick={()=>setPermissionsUser(null)} className="rounded-xl border border-[var(--line)] px-4 py-2">إلغاء</button><button disabled={saving} onClick={async()=>{setSaving(true);try{await saveUnifiedPermissions(permissionsUser.id,vehiclePermissions);setMessage('تم حفظ الصلاحيات.');setPermissionsUser(null);router.refresh();}catch(error){setMessage(error instanceof Error?error.message:'تعذر حفظ الصلاحيات.');}finally{setSaving(false);}}} className="rounded-xl bg-[var(--brand)] px-4 py-2 font-bold text-white">حفظ الصلاحيات</button></div></section></div>}
     </main>
   );
 }

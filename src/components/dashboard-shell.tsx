@@ -4,7 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Building2, CarFront, ClipboardList, LayoutDashboard, Menu, Settings, UserRound, Users, Wrench, X } from 'lucide-react';
+import { Activity, Building2, CarFront, ClipboardList, LayoutDashboard, Menu, Settings, UserRound, Users, Wrench, X } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import { LogoutButton } from '@/components/logout-button';
 import { ThemeToggle } from '@/components/theme-toggle';
 
@@ -22,8 +23,11 @@ const links = [
 
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const [visible,setVisible]=useState<string[]|null>(null);
+  useEffect(()=>{let live=true;void(async()=>{const db=createClient();const {data:{user}}=await db.auth.getUser();if(!user)return;const {data:profile}=await db.from('profiles').select('role').eq('id',user.id).maybeSingle();if(profile?.role==='admin'){if(live)setVisible(links.map(([href])=>String(href)).concat('/dashboard/activity-log'));return;}const {data:p}=await db.from('section_permissions').select('*').eq('user_id',user.id).maybeSingle();const allowed=['/dashboard/profile'];if(p?.properties_sale_view||p?.properties_rent_view)allowed.push('/dashboard/properties');if(p?.properties_management_view)allowed.push('/dashboard/property-management');if(p?.cars_sale_view||p?.cars_rent_view)allowed.push('/dashboard/cars');if(p?.properties_requests_view||p?.properties_requests_manage)allowed.push('/dashboard/requests');if(p?.users_permissions_manage)allowed.push('/dashboard/users');if(p?.activity_logs_view)allowed.push('/dashboard/activity-log');if(live)setVisible(allowed);})();return()=>{live=false;};},[]);
+  const navLinks=[...links,['/dashboard/activity-log','سجل حركة التطبيق',Activity] as const];
 
-  return <nav className="mt-6 space-y-1" aria-label="التنقل داخل لوحة التحكم">{links.map(([href, label, Icon]) => {
+  return <nav className="mt-6 space-y-1" aria-label="التنقل داخل لوحة التحكم">{navLinks.filter(([href])=>visible?.includes(href)).map(([href, label, Icon]) => {
     const active = href === '/dashboard' ? pathname === href : pathname.startsWith(href);
     const className = active ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200' : 'text-[var(--muted)] hover:bg-emerald-50 hover:text-emerald-900 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-100';
     return <Link key={href} href={href} onClick={onNavigate} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${className}`}><Icon size={18} aria-hidden="true" />{label}</Link>;

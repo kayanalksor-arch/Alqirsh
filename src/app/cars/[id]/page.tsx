@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, CalendarDays, CarFront, MapPin, Phone, Tag, Users } from 'lucide-react';
+import { ArrowLeft, CalendarDays, CarFront, MapPin, Phone, Tag } from 'lucide-react';
 import { PublicHeader } from '@/components/public-header';
 import { PublicFooter } from '@/components/public-footer';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
@@ -16,13 +16,13 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
 
   const { data: listing, error } = await db
     .from('vehicle_listings')
-    .select('*')
+    .select('id,title,description,listing_type,brand,model,variant,year,price,daily_price,weekly_price,monthly_price,location,fuel_type,transmission,mileage,color,image_url,status,condition,created_at')
     .eq('id', id)
     .in('status', publicListingStatuses)
     .maybeSingle();
 
   if (error || !listing) {
-    return <main className="app-shell min-h-screen"><PublicHeader /><section className="mx-auto max-w-6xl px-5 py-10"><p className="eyebrow">السيارات</p><h1 className="mt-2 text-3xl font-black">الرسالة</h1><div className="panel mt-8 rounded-2xl p-8 text-center">{error ? error.message : 'لم يتم العثور على السيارة المطلوبة.'}</div></section></main>;
+    return <main className="app-shell min-h-screen"><PublicHeader /><section className="mx-auto max-w-6xl px-5 py-10"><p className="eyebrow">السيارات</p><h1 className="mt-2 text-3xl font-black">تفاصيل السيارة</h1><div className="panel mt-8 rounded-2xl p-8 text-center">{error ? 'تعذّر تحميل بيانات السيارة. يُرجى المحاولة مرة أخرى.' : 'لم يتم العثور على السيارة المطلوبة.'}</div></section><PublicFooter /></main>;
   }
 
   const price = listing.listing_type === 'rent'
@@ -63,9 +63,9 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span>ناقل الحركة</span><b>{listing.transmission ?? '—'}</b></div>
             </div>
 
-            <a href={`tel:${(listing.contact_phone ?? '').replace(/\s+/g, '')}`} className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-4 font-bold text-white">
-              <Phone size={18} /> تواصل الآن
-            </a>
+            <Link href="/contact" className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-4 font-bold text-white">
+              <Phone size={18} /> تواصل مع القِرش
+            </Link>
           </aside>
         </div>
 
@@ -88,7 +88,6 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span className="inline-flex items-center gap-2"><CalendarDays size={16} /> تاريخ الإضافة</span><b>{listing.created_at ? new Date(listing.created_at).toLocaleDateString('ar-EG') : '—'}</b></div>
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span className="inline-flex items-center gap-2"><MapPin size={16} /> الموقع</span><b>{listing.location ?? '—'}</b></div>
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span className="inline-flex items-center gap-2"><CarFront size={16} /> حالة السيارة</span><b>{listing.condition ?? 'مستعملة'}</b></div>
-              <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span className="inline-flex items-center gap-2"><Users size={16} /> التواصل</span><b>{listing.contact_name ?? 'غير محدد'}</b></div>
               <div className="flex items-center justify-between rounded-xl bg-[var(--canvas)] p-3"><span className="inline-flex items-center gap-2"><Tag size={16} /> السعر</span><b>{formatEgp(price)}</b></div>
             </div>
           </aside>
