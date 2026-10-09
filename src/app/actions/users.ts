@@ -20,14 +20,22 @@ async function recordUserAction(actorId:string,action:string,targetId:string,des
   await admin.from('activity_logs').insert({actor_id:actorId,actor_name:actor?.full_name,actor_email:actor?.email,section:'users',action,entity_id:targetId,entity_label:target?.full_name??targetId,description,sensitive:true,details:{}});
 }
 
-export async function createDashboardUser(input: { fullName: string; email: string; password: string; role: 'admin'|'property_manager'|'member'; status: 'active'|'inactive' }) {
+const assignablePermissionKeys = ['properties_sale_view','properties_sale_create','properties_sale_update','properties_sale_delete','properties_sale_status','properties_rent_view','properties_rent_create','properties_rent_update','properties_rent_delete','properties_rent_status','properties_images_manage','properties_requests_view','properties_requests_manage','properties_management_view','properties_management_manage','cars_sale_view','cars_sale_create','cars_sale_update','cars_sale_delete','cars_rent_view','cars_rent_create','cars_rent_update','cars_rent_delete','cars_images_manage','bookings_view','bookings_create','bookings_update','bookings_cancel','bookings_customer_details','users_permissions_manage','activity_logs_view'] as const;
+
+export async function createDashboardUser(input: { fullName: string; email: string; phone?: string; password: string; role: 'admin'|'property_manager'|'member'; status: 'active'|'inactive'; permissions?: Record<string, boolean> }) {
   const actor=await authorizeAdmin();
   if (!input.fullName.trim() || !/^\S+@\S+\.\S+$/.test(input.email) || input.password.length < 8) throw new Error('أدخل اسماً وبريداً صحيحاً وكلمة مرور من 8 أحرف على الأقل.');
+  if (input.role === 'admin') throw new Error('إنشاء حساب مدير عام من هذه النافذة غير متاح.');
+  const permissions=input.permissions??{};
+  if(Object.keys(permissions).some(key=>!assignablePermissionKeys.includes(key as typeof assignablePermissionKeys[number]))||assignablePermissionKeys.some(key=>typeof permissions[key]!=='boolean')) throw new Error('الصلاحيات المرسلة غير صالحة.');
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.createUser({ email: input.email.trim().toLowerCase(), password: input.password, email_confirm: true, user_metadata: { full_name: input.fullName.trim() }, app_metadata: { status: input.status } });
   if (error || !data.user) throw new Error(error?.message ?? 'تعذر إنشاء المستخدم.');
-  const { error: profileError } = await admin.from('profiles').upsert({ id: data.user.id, full_name: input.fullName.trim(), email: input.email.trim().toLowerCase(), role: input.role, status: input.status }, { onConflict: 'id' });
+  const { error: profileError } = await admin.from('profiles').upsert({ id: data.user.id, full_name: input.fullName.trim(), email: input.email.trim().toLowerCase(), phone: input.phone?.trim() || null, role: input.role, status: input.status }, { onConflict: 'id' });
   if (profileError) { await admin.auth.admin.deleteUser(data.user.id); throw new Error(profileError.message); }
+  const permissionRow=Object.fromEntries(assignablePermissionKeys.map(key=>[key,permissions[key]===true]));
+  const {error:permissionError}=await admin.from('section_permissions').upsert({user_id:data.user.id,...permissionRow,updated_at:new Date().toISOString(),updated_by:actor.id},{onConflict:'user_id'});
+  if(permissionError){await admin.from('profiles').delete().eq('id',data.user.id);await admin.auth.admin.deleteUser(data.user.id);throw new Error(`تعذر حفظ الصلاحيات؛ أُلغي إنشاء الحساب. ${permissionError.message}`);}
   await recordUserAction(actor.id,'create',data.user.id,'تم إنشاء مستخدم.');
   revalidatePath('/dashboard/users');
 }
