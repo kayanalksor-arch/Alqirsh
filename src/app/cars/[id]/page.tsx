@@ -1,38 +1,70 @@
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { ArrowLeft, CalendarDays, CarFront, MapPin, Phone, Tag } from 'lucide-react';
 import { PublicHeader } from '@/components/public-header';
 import { PublicFooter } from '@/components/public-footer';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { ImageLightbox } from '@/components/image-lightbox';
-import { formatEgp, listingStatusClass, listingStatusLabel, publicListingStatuses } from '@/lib/listings';
+import { JsonLd } from '@/components/json-ld';
+import { getPublicCar } from '@/lib/public-catalogue';
+import { formatEgp, indexableListingStatuses, listingStatusClass, listingStatusLabel } from '@/lib/listings';
 
-export default async function CarDetailPage({ params }: { params: Promise<{ id: string }> }) {
+type Props = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const db = isSupabaseConfigured ? await createClient() : null;
+  const listing = await getPublicCar(id);
+  if (!listing) return { title: 'السيارة غير موجودة', robots: { index: false, follow: false } };
+  const kind = listing.listing_type === 'rent' ? 'للإيجار' : 'للبيع';
+  const title = [listing.title, listing.brand, listing.model, kind, listing.location].filter(Boolean).join(' | ');
+  const facts = [listing.year, listing.fuel_type, listing.transmission, listing.location].filter(Boolean).join('، ');
+  const description = `${listing.description?.trim() || `تفاصيل سيارة ${listing.title}`} ${facts ? `— ${facts}.` : ''}`.slice(0, 300);
+  const indexable = indexableListingStatuses.includes(listing.status as (typeof indexableListingStatuses)[number]);
+  return {
+    title,
+    description,
+    alternates: { canonical: `/cars/${listing.id}` },
+    robots: indexable ? { index: true, follow: true, 'max-image-preview': 'large' } : { index: false, follow: true },
+    openGraph: { type: 'website', title, description, url: `/cars/${listing.id}`, ...(listing.image_url ? { images: [{ url: listing.image_url, alt: listing.title }] } : {}) },
+  };
+}
 
-  if (!db) {
-    return <main className="app-shell min-h-screen"><PublicHeader /><section className="mx-auto max-w-6xl px-5 py-10"><p className="eyebrow">السيارات</p><h1 className="mt-2 text-3xl font-black">تفاصيل السيارة</h1><div className="panel mt-8 rounded-2xl p-8 text-center">لا توجد بيانات بسبب عدم تهيئة Supabase.</div></section></main>;
-  }
-
-  const { data: listing, error } = await db
-    .from('vehicle_listings')
-    .select('id,title,description,listing_type,brand,model,variant,year,price,daily_price,weekly_price,monthly_price,location,fuel_type,transmission,mileage,color,image_url,status,condition,created_at')
-    .eq('id', id)
-    .in('status', publicListingStatuses)
-    .maybeSingle();
-
-  if (error || !listing) {
-    return <main className="app-shell min-h-screen"><PublicHeader /><section className="mx-auto max-w-6xl px-5 py-10"><p className="eyebrow">السيارات</p><h1 className="mt-2 text-3xl font-black">تفاصيل السيارة</h1><div className="panel mt-8 rounded-2xl p-8 text-center">{error ? 'تعذّر تحميل بيانات السيارة. يُرجى المحاولة مرة أخرى.' : 'لم يتم العثور على السيارة المطلوبة.'}</div></section><PublicFooter /></main>;
-  }
+export default async function CarDetailPage({ params }: Props) {
+  const { id } = await params;
+  const listing = await getPublicCar(id);
+  if (!listing) notFound();
 
   const price = listing.listing_type === 'rent'
     ? (listing.daily_price ?? listing.weekly_price ?? listing.monthly_price ?? 0)
     : (listing.price ?? 0);
 
   const gallery = listing.image_url ? [listing.image_url] : [];
+  const category = listing.listing_type === 'rent' ? 'سيارات للإيجار' : 'سيارات للبيع';
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org', '@type': 'Car',
+      name: listing.title, url: `https://alqirsh.online/cars/${listing.id}`,
+      ...(listing.description ? { description: listing.description } : {}),
+      ...(listing.image_url ? { image: [listing.image_url] } : {}),
+      ...(listing.brand ? { brand: listing.brand } : {}), ...(listing.model ? { model: listing.model } : {}),
+      ...(listing.year ? { vehicleModelDate: String(listing.year) } : {}),
+      ...(listing.fuel_type ? { fuelType: listing.fuel_type } : {}),
+      ...(listing.transmission ? { vehicleTransmission: listing.transmission } : {}),
+      ...(listing.mileage ? { mileageFromOdometer: { '@type': 'QuantitativeValue', value: listing.mileage, unitCode: 'KMT' } } : {}),
+      ...(listing.listing_type === 'sale' && listing.price != null ? { offers: { '@type': 'Offer', price: listing.price, priceCurrency: 'EGP', availability: listing.status === 'available' ? 'https://schema.org/InStock' : 'https://schema.org/LimitedAvailability' } } : {}),
+    },
+    {
+      '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: 'https://alqirsh.online/' },
+        { '@type': 'ListItem', position: 2, name: category, item: `https://alqirsh.online${listing.listing_type === 'rent' ? '/cars/rent' : '/cars/sale'}` },
+        { '@type': 'ListItem', position: 3, name: listing.title },
+      ],
+    },
+  ];
 
   return (
-    <main className="app-shell min-h-screen">
+    <main className="app-shell min-h-screen"><JsonLd data={jsonLd} />
       <PublicHeader />
       <section className="mx-auto max-w-6xl px-5 py-10 lg:py-14">
         <div className="mb-6 flex items-center justify-between gap-4">

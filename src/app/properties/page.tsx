@@ -2,8 +2,13 @@ import Link from 'next/link';
 import { PublicHeader } from '@/components/public-header';
 import { PublicFooter } from '@/components/public-footer';
 import { PropertiesListingView } from '@/components/properties-listing-view';
+import { getPublicProperties } from '@/lib/public-catalogue';
+import type { Metadata } from 'next';
 
-export default function PropertiesPage() {
+export const metadata: Metadata = { title: 'عقارات للبيع والإيجار في مصر', description: 'تصفح العقارات المعروضة للبيع والإيجار في مصر، وابحث حسب المنطقة ونوع العقار على منصة القِرش.', alternates: { canonical: '/properties' } };
+
+export default async function PropertiesPage() {
+  const offers = await getPublicProperties('all');
   return (
     <main className="app-shell min-h-screen">
       <PublicHeader />
@@ -38,7 +43,7 @@ export default function PropertiesPage() {
         </div>
 
         {/* Listing View */}
-        <PropertiesListingView view="all" />
+        <PropertiesListingView view="all" offers={offers} />
       </section><PublicFooter />
     </main>
   );

@@ -1,47 +1,71 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { MapPin } from 'lucide-react';
 import { PublicHeader } from '@/components/public-header';
 import { PublicFooter } from '@/components/public-footer';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { ImageLightbox } from '@/components/image-lightbox';
-import { formatEgp, listingStatusClass, listingStatusLabel, publicListingStatuses } from '@/lib/listings';
+import { JsonLd } from '@/components/json-ld';
+import { getPublicPropertyPageData } from '@/lib/public-catalogue';
+import { formatEgp, indexableListingStatuses, listingStatusClass, listingStatusLabel } from '@/lib/listings';
 
 type PropertyDetailsPageProps = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string | string[] }>;
 };
 
-export default async function PropertyDetailsPage({ params, searchParams }: PropertyDetailsPageProps) {
-  if (!isSupabaseConfigured) notFound();
+const listingTypeFrom = (type: string | string[] | undefined): 'sale' | 'rental' => type === 'rental' ? 'rental' : 'sale';
 
+export async function generateMetadata({ params, searchParams }: PropertyDetailsPageProps): Promise<Metadata> {
+  const [{ id }, search] = await Promise.all([params, searchParams]);
+  const listingType = listingTypeFrom(search.type);
+  const data = await getPublicPropertyPageData(id, listingType);
+  if (!data) return { title: 'العقار غير موجود', robots: { index: false, follow: false } };
+  const { property } = data;
+  const typeLabel = listingType === 'rental' ? 'للإيجار' : 'للبيع';
+  const title = [property.property_type, typeLabel, property.location].filter(Boolean).join(' في ');
+  const description = [property.description?.trim(), property.area ? `المساحة ${property.area} م²` : null, property.bedrooms ? `${property.bedrooms} غرف` : null, property.location].filter(Boolean).join('، ').slice(0, 300)
+    || `تفاصيل ${property.property_type || 'عقار'} ${typeLabel} على منصة القِرش.`;
+  const canonical = `/properties/${property.id}${listingType === 'rental' ? '?type=rental' : ''}`;
+  const indexable = indexableListingStatuses.includes(property.status as (typeof indexableListingStatuses)[number]);
+  return {
+    title: `${title || property.title} | ${property.title}`,
+    description,
+    alternates: { canonical },
+    robots: indexable ? { index: true, follow: true, 'max-image-preview': 'large' } : { index: false, follow: true },
+    openGraph: { type: 'website', title, description, url: canonical, ...(data.images[0] ? { images: [{ url: data.images[0], alt: property.title }] } : {}) },
+  };
+}
+
+export default async function PropertyDetailsPage({ params, searchParams }: PropertyDetailsPageProps) {
   const { id } = await params;
   const { type } = await searchParams;
-  const propertyType = type === 'rental' ? 'rental' : 'sale';
-  const table = propertyType === 'rental' ? 'rental_offers' : 'sale_offers';
-  const db = await createClient();
-  const { data: property, error } = await db
-    .from(table)
-    .select('id,title,description,property_type,price,location,address,map_url,area,bedrooms,bathrooms,facade,status')
-    .eq('id', id)
-    .in('status', publicListingStatuses)
-    .maybeSingle();
-
-  if (error || !property) notFound();
-
-  const { data: media } = await db
-    .from('property_images')
-    .select('image_url,image_path,sort_order')
-    .eq('property_id', id)
-    .eq('property_type', propertyType)
-    .order('sort_order');
-
-  const images = (media ?? []).map((image) =>
-    image.image_url || db.storage.from('listing-images').getPublicUrl(image.image_path).data.publicUrl,
-  );
+  const propertyType = listingTypeFrom(type);
+  const data = await getPublicPropertyPageData(id, propertyType);
+  if (!data) notFound();
+  const { property, images } = data;
+  const category = propertyType === 'rental' ? 'عقارات للإيجار' : 'عقارات للبيع';
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org', '@type': 'RealEstateListing',
+      name: property.title, url: `https://alqirsh.online/properties/${property.id}${propertyType === 'rental' ? '?type=rental' : ''}`,
+      ...(property.description ? { description: property.description } : {}),
+      ...(images.length ? { image: images } : {}),
+      ...(property.location || property.address ? { address: { '@type': 'PostalAddress', addressLocality: property.location || property.address, addressCountry: 'EG' } } : {}),
+      ...(property.price != null ? { offers: { '@type': 'Offer', price: property.price, priceCurrency: 'EGP', availability: property.status === 'available' ? 'https://schema.org/InStock' : 'https://schema.org/LimitedAvailability' } } : {}),
+    },
+    {
+      '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: 'https://alqirsh.online/' },
+        { '@type': 'ListItem', position: 2, name: category, item: `https://alqirsh.online/properties/${propertyType === 'rental' ? 'rent' : 'sale'}` },
+        { '@type': 'ListItem', position: 3, name: property.title },
+      ],
+    },
+  ];
 
   return (
-    <main className="app-shell min-h-screen">
+    <main className="app-shell min-h-screen"><JsonLd data={jsonLd} />
       <PublicHeader />
       <section className="page-container page-container--narrow">
         <div className="flex items-center justify-between gap-4">

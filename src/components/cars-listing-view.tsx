@@ -2,55 +2,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Search } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { formatEgp, formatMoney, listingStatusClass, listingStatusLabel, publicListingStatuses } from '@/lib/listings';
+import { useMemo, useState } from 'react';
+import { formatEgp, formatMoney, listingStatusClass, listingStatusLabel } from '@/lib/listings';
+import type { PublicCar } from '@/lib/public-catalogue';
 
-type Vehicle = {
-  id: string;
-  title: string;
-  brand: string | null;
-  model: string | null;
-  year: number | null;
-  listing_type: 'sale' | 'rent';
-  price: number | null;
-  daily_price: number | null;
-  weekly_price: number | null;
-  monthly_price: number | null;
-  fuel_type: string | null;
-  transmission: string | null;
-  mileage: number | null;
-  location: string | null;
-  image_url: string | null;
-  status: string | null;
-};
-
-export function CarsListingView({ view }: { view: 'all' | 'sale' | 'rent' }) {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+export function CarsListingView({ view, vehicles }: { view: 'all' | 'sale' | 'rent'; vehicles: PublicCar[] }) {
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const loadVehicles = async () => {
-      const db = createClient();
-      const { data, error: loadError } = await db
-        .from('vehicle_listings')
-        .select('id,title,brand,model,year,listing_type,price,daily_price,weekly_price,monthly_price,fuel_type,transmission,mileage,location,image_url,status')
-        .in('status', publicListingStatuses)
-        .order('created_at', { ascending: false });
-
-      if (loadError) {
-        setError('تعذّر تحميل السيارات. يُرجى المحاولة مرة أخرى.');
-      } else {
-        setVehicles((data ?? []) as Vehicle[]);
-      }
-      setLoading(false);
-    };
-
-    void loadVehicles();
-  }, []);
 
   const visibleVehicles = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -69,14 +27,6 @@ export function CarsListingView({ view }: { view: 'all' | 'sale' | 'rent' }) {
     () => [...new Set(vehicles.filter((vehicle) => view === 'all' || vehicle.listing_type === view).map((vehicle) => vehicle.location).filter(Boolean))] as string[],
     [vehicles, view],
   );
-
-  if (loading) {
-    return <div className="panel mt-8 rounded-2xl p-10 text-center text-[var(--muted)]">جارٍ تحميل السيارات...</div>;
-  }
-
-  if (error) {
-    return <div className="panel mt-8 rounded-2xl p-6 text-center text-red-600">تعذر تحميل السيارات: {error}</div>;
-  }
 
   return (
     <>

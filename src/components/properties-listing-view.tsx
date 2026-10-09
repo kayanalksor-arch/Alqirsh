@@ -1,24 +1,10 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { MapPin, Search } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase/client';
-import { formatEgp, listingStatusClass, listingStatusLabel, publicListingStatuses } from '@/lib/listings';
-
-type Offer = {
-  id: string;
-  title: string;
-  description: string | null;
-  price: number | null;
-  location: string | null;
-  address: string | null;
-  area: number | null;
-  bedrooms: number | null;
-  bathrooms: number | null;
-  property_type: string | null;
-  status: string | null;
-};
+import { formatEgp, listingStatusClass, listingStatusLabel } from '@/lib/listings';
+import type { PublicPropertyCard } from '@/lib/public-catalogue';
 
 const normalizeSearchText = (value: string) =>
   value
@@ -28,99 +14,22 @@ const normalizeSearchText = (value: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-export function PropertiesListingView({ view }: { view: 'all' | 'sale' | 'rent' }) {
-  const [saleOffers, setSaleOffers] = useState<Offer[]>([]);
-  const [rentOffers, setRentOffers] = useState<Offer[]>([]);
-  const [saleImages, setSaleImages] = useState<Record<string, string[]>>({});
-  const [rentImages, setRentImages] = useState<Record<string, string[]>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+export function PropertiesListingView({ view, offers }: { view: 'all' | 'sale' | 'rent'; offers: PublicPropertyCard[] }) {
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const db = createClient();
-
-        // Fetch sale offers
-        const { data: sales, error: saleError } = await db
-          .from('sale_offers')
-          .select('id,title,description,price,location,address,area,bedrooms,bathrooms,property_type,status')
-          .in('status', publicListingStatuses)
-          .order('created_at', { ascending: false });
-
-        if (saleError) throw saleError;
-
-        // Fetch rental offers
-        const { data: rentals, error: rentError } = await db
-          .from('rental_offers')
-          .select('id,title,description,price,location,address,area,bedrooms,bathrooms,property_type,status')
-          .in('status', publicListingStatuses)
-          .order('created_at', { ascending: false });
-
-        if (rentError) throw rentError;
-
-        // Fetch images for sales
-        const { data: saleMedia } = await db
-          .from('property_images')
-          .select('property_id,image_url,image_path,sort_order')
-          .eq('property_type', 'sale')
-          .order('sort_order');
-
-        const saleImgs: Record<string, string[]> = {};
-        for (const image of saleMedia ?? []) {
-          const url =
-            image.image_url ||
-            db.storage.from('listing-images').getPublicUrl(image.image_path).data.publicUrl;
-          saleImgs[image.property_id] = [...(saleImgs[image.property_id] ?? []), url];
-        }
-        setSaleImages(saleImgs);
-
-        // Fetch images for rentals
-        const { data: rentMedia } = await db
-          .from('property_images')
-          .select('property_id,image_url,image_path,sort_order')
-          .eq('property_type', 'rental')
-          .order('sort_order');
-
-        const rentImgs: Record<string, string[]> = {};
-        for (const image of rentMedia ?? []) {
-          const url =
-            image.image_url ||
-            db.storage.from('listing-images').getPublicUrl(image.image_path).data.publicUrl;
-          rentImgs[image.property_id] = [...(rentImgs[image.property_id] ?? []), url];
-        }
-        setRentImages(rentImgs);
-
-        setSaleOffers((sales ?? []) as Offer[]);
-        setRentOffers((rentals ?? []) as Offer[]);
-        setError(null);
-      } catch {
-        setError('تعذّر تحميل العقارات. يُرجى المحاولة مرة أخرى.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void fetchData();
-  }, []);
-
   // Combine offers based on view
   const allOffers = useMemo(() => {
-    if (view === 'sale') return saleOffers;
-    if (view === 'rent') return rentOffers;
-    return [...saleOffers, ...rentOffers];
-  }, [view, saleOffers, rentOffers]);
+    if (view === 'sale') return offers.filter((offer) => offer.listingType === 'sale');
+    if (view === 'rent') return offers.filter((offer) => offer.listingType === 'rental');
+    return offers;
+  }, [view, offers]);
 
   const allImages = useMemo(() => {
-    if (view === 'sale') return saleImages;
-    if (view === 'rent') return rentImages;
-    return { ...saleImages, ...rentImages };
-  }, [view, saleImages, rentImages]);
+    return Object.fromEntries(allOffers.map((offer) => [offer.id, offer.images]));
+  }, [allOffers]);
 
   const locations = useMemo(
     () => [...new Set(allOffers.map((o) => o.location).filter(Boolean))] as string[],
@@ -135,7 +44,7 @@ export function PropertiesListingView({ view }: { view: 'all' | 'sale' | 'rent' 
     return allOffers.filter((offer) => {
       const matchLocation = !location || offer.location === location;
       const matchType = !propertyType || offer.property_type === propertyType;
-      const matchTypeFilter = !typeFilter || (typeFilter === 'sale' ? view === 'all' && saleOffers.includes(offer) : view === 'all' && rentOffers.includes(offer));
+      const matchTypeFilter = !typeFilter || (typeFilter === 'sale' ? offer.listingType === 'sale' : offer.listingType === 'rental');
 
       const haystack = [
         offer.title,
@@ -152,23 +61,7 @@ export function PropertiesListingView({ view }: { view: 'all' | 'sale' | 'rent' 
 
       return matchLocation && matchType && matchQuery && matchTypeFilter;
     });
-  }, [allOffers, location, propertyType, typeFilter, query, view, saleOffers, rentOffers]);
-
-  if (loading) {
-    return (
-      <div className="mt-8 rounded-2xl border border-[var(--line)] p-8 text-center text-[var(--muted)]">
-        جارٍ التحميل...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-red-600 dark:bg-red-950/20 dark:text-red-400">
-        {error}
-      </div>
-    );
-  }
+  }, [allOffers, location, propertyType, typeFilter, query]);
 
   return (
     <>
@@ -243,7 +136,7 @@ export function PropertiesListingView({ view }: { view: 'all' | 'sale' | 'rent' 
         <section className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((offer) => {
             const images = allImages[offer.id] || [];
-            const isRental = rentOffers.some((r) => r.id === offer.id);
+            const isRental = offer.listingType === 'rental';
             return (
               <article key={offer.id} className="panel overflow-hidden rounded-2xl">
                 <div className="relative aspect-[16/10] overflow-hidden bg-[var(--canvas)]">
@@ -275,7 +168,7 @@ export function PropertiesListingView({ view }: { view: 'all' | 'sale' | 'rent' 
                     {formatEgp(offer.price)}{isRental ? ' / شهرياً' : ''}
                   </p>
                   <Link
-                    href={`/properties/${offer.id}?type=${isRental ? 'rental' : 'sale'}`}
+                    href={`/properties/${offer.id}${isRental ? '?type=rental' : ''}`}
                     className="mt-3 block rounded-lg border border-[var(--line)] py-2 text-center text-xs font-bold text-[var(--ink)] transition hover:bg-[var(--canvas)]"
                   >
                     التفاصيل

@@ -4,12 +4,20 @@ import { ArrowLeft, Building2, CarFront, CheckCircle2, Search, Wrench } from 'lu
 import { PublicFooter } from '@/components/public-footer';
 import { PublicHeader } from '@/components/public-header';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
+import { JsonLd } from '@/components/json-ld';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'القِرش | عقارات وسيارات للبيع والإيجار في مصر',
+  description: 'تصفح عروض العقارات والسيارات للبيع والإيجار في مصر، مع تفاصيل واضحة تساعدك على اختيار العرض المناسب.',
+  alternates: { canonical: '/' },
+};
 import { formatEgp, publicListingStatuses } from '@/lib/listings';
 
 type Offer = { id: string; title: string; price: number | null; location: string | null; property_type: string | null; imageUrl: string | null; listingType: 'sale' | 'rental' };
 type Vehicle = { id: string; title: string; brand: string | null; model: string | null; price: number | null; image_url: string | null };
 const destinations = [
-  ['/sales', 'عقارات للبيع', 'تصفح عروض البيع المتاحة', Building2], ['/rentals', 'عقارات للإيجار', 'اعثر على خيار الإيجار المناسب', Building2], ['/cars/sale', 'سيارات للبيع', 'سيارات معروضة للبيع', CarFront], ['/cars/rent', 'سيارات للإيجار', 'سيارات متاحة للإيجار', CarFront],
+  ['/properties/sale', 'عقارات للبيع', 'تصفح عروض البيع المتاحة', Building2], ['/properties/rent', 'عقارات للإيجار', 'اعثر على خيار الإيجار المناسب', Building2], ['/cars/sale', 'سيارات للبيع', 'سيارات معروضة للبيع', CarFront], ['/cars/rent', 'سيارات للإيجار', 'سيارات متاحة للإيجار', CarFront],
 ] as const;
 
 export default async function Home() {
@@ -32,7 +40,11 @@ export default async function Home() {
     const rentalImages = new Map((rentalMedia.data ?? []).filter((item) => mediaUrl(item)).map((item) => [item.property_id, mediaUrl(item)!]));
     properties = [...(sales.data ?? []).map((item) => ({ ...item, imageUrl: saleImages.get(item.id) ?? null, listingType: 'sale' as const })), ...(rentals.data ?? []).map((item) => ({ ...item, imageUrl: rentalImages.get(item.id) ?? null, listingType: 'rental' as const }))].slice(0, 4); vehicles = (cars.data ?? []) as Vehicle[];
   } catch { /* The empty states below remain intentional and usable. */ }
-  return <main className="app-shell min-h-screen"><PublicHeader />
+  const structuredData = [
+    { '@context': 'https://schema.org', '@type': 'Organization', '@id': 'https://alqirsh.online/#organization', name: 'القِرش', alternateName: 'Alqirsh', url: 'https://alqirsh.online', logo: 'https://alqirsh.online/brand/alqirsh-logo.png' },
+    { '@context': 'https://schema.org', '@type': 'WebSite', '@id': 'https://alqirsh.online/#website', name: 'القِرش', alternateName: 'Alqirsh', url: 'https://alqirsh.online', inLanguage: 'ar-EG', publisher: { '@id': 'https://alqirsh.online/#organization' } },
+  ];
+  return <main className="app-shell min-h-screen"><JsonLd data={structuredData} /><PublicHeader />
     <section className="hero-shell"><div className="page-container py-10 sm:py-14"><p className="eyebrow text-[var(--on-brand-muted)]">القِرش | عقارات وسيارات</p><h1 className="mt-3 max-w-3xl text-4xl font-black leading-tight text-white sm:text-5xl">اكتشف العقار والسيارة المناسبة لك</h1><p className="mt-4 max-w-2xl text-sm leading-8 text-[var(--on-brand-muted)] sm:text-base">استعرض العروض المتاحة للبيع والإيجار من مكان واحد، بتجربة عربية واضحة وسريعة.</p><div className="mt-8 grid max-w-4xl gap-3 rounded-2xl bg-white p-3 shadow-[0_18px_50px_rgb(3_26_20_/_22%)] md:grid-cols-[1fr_1fr_auto]"><Link href="/properties" className="flex min-h-12 items-center gap-3 rounded-xl border border-[var(--line)] px-4 text-sm font-bold text-[var(--ink)]"><Building2 size={18} className="text-[var(--brand)]" />البحث في العقارات</Link><Link href="/cars" className="flex min-h-12 items-center gap-3 rounded-xl border border-[var(--line)] px-4 text-sm font-bold text-[var(--ink)]"><CarFront size={18} className="text-[var(--brand)]" />البحث في السيارات</Link><Link href="/properties" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-5 text-sm font-bold text-white"><Search size={17} />استعرض العروض</Link></div></div></section>
     <section className="page-container pt-8"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{destinations.map(([href, label, detail, Icon]) => <Link key={href} href={href} className="feature-link group"><span className="grid size-11 place-items-center rounded-xl bg-[var(--primary-soft)] text-[var(--brand)]"><Icon size={20}/></span><span><b className="block">{label}</b><small>{detail}</small></span><ArrowLeft className="mr-auto size-4 text-[var(--muted)] transition group-hover:-translate-x-1 group-hover:text-[var(--brand)]" /></Link>)}</div></section>
     <section className="page-container"><SectionHeading eyebrow="عروض متاحة" title="أحدث العقارات" href="/properties" /><div className="listing-grid">{properties.length ? properties.map((item) => <Link key={item.id} href={`/properties/${item.id}${item.listingType === 'rental' ? '?type=rental' : ''}`} className="listing-card"><div className="relative aspect-[16/9] bg-[var(--muted-surface)]">{item.imageUrl ? <Image src={item.imageUrl} alt={item.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" /> : <span className="listing-placeholder"><Building2 size={28}/></span>}</div><div className="p-4"><p className="text-xs font-bold text-[var(--brand)]">{item.property_type ?? 'عقار'}</p><h3 className="mt-2 line-clamp-1 font-black">{item.title}</h3><p className="mt-2 text-sm text-[var(--muted)]">{item.location ?? 'الموقع غير محدد'}</p><strong className="mt-4 block text-lg text-[var(--brand)]">{formatEgp(item.price)}</strong></div></Link>) : <EmptyListing title="لا توجد عقارات متاحة حاليًا" href="/properties" />}</div></section>

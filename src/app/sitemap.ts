@@ -1,17 +1,30 @@
 import type { MetadataRoute } from 'next';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
-import { publicListingStatuses } from '@/lib/listings';
+import { getIndexableListings } from '@/lib/public-catalogue';
+
 const base = 'https://alqirsh.online';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const pages = ['', '/sales', '/rentals', '/cars', '/cars/sale', '/cars/rent', '/partners', '/contact'].map((path) => ({ url: `${base}${path}`, lastModified: new Date(), changeFrequency: 'weekly' as const, priority: path === '' ? 1 : 0.7 }));
-  if (!isSupabaseConfigured) return pages;
+  const pages: MetadataRoute.Sitemap = [
+    '/', '/properties', '/properties/sale', '/properties/rent',
+    '/cars', '/cars/sale', '/cars/rent', '/partners', '/contact',
+  ].map((path) => ({ url: `${base}${path}` }));
+
   try {
-    const db = await createClient();
-    const [sales, rentals, cars] = await Promise.all([
-      db.from('sale_offers').select('id,updated_at').in('status', publicListingStatuses),
-      db.from('rental_offers').select('id,updated_at').in('status', publicListingStatuses),
-      db.from('vehicle_listings').select('id,updated_at').in('status', publicListingStatuses),
-    ]);
-    return [...pages, ...(sales.data ?? []).map((item) => ({ url: `${base}/properties/${item.id}`, lastModified: item.updated_at ?? undefined, priority: 0.6 })), ...(rentals.data ?? []).map((item) => ({ url: `${base}/properties/${item.id}?type=rental`, lastModified: item.updated_at ?? undefined, priority: 0.6 })), ...(cars.data ?? []).map((item) => ({ url: `${base}/cars/${item.id}`, lastModified: item.updated_at ?? undefined, priority: 0.6 }))];
-  } catch { return pages; }
+    const { properties, cars } = await getIndexableListings();
+    const details: MetadataRoute.Sitemap = [
+      ...properties.map((item) => ({
+        url: `${base}/properties/${item.id}${item.listingType === 'rental' ? '?type=rental' : ''}`,
+        ...(item.updated_at ? { lastModified: item.updated_at } : {}),
+      })),
+      ...cars.map((item) => ({
+        url: `${base}/cars/${item.id}`,
+        ...(item.updated_at ? { lastModified: item.updated_at } : {}),
+      })),
+    ];
+    const unique = new Map([...pages, ...details].map((entry) => [entry.url, entry]));
+    return [...unique.values()];
+  } catch (error) {
+    console.error('Could not generate the public sitemap from Supabase.', error);
+    throw new Error('Sitemap generation failed.');
+  }
 }

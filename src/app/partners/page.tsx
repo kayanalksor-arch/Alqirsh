@@ -2,6 +2,9 @@ import { PublicHeader } from '@/components/public-header';
 import { PublicFooter } from '@/components/public-footer';
 import { PublicPartnerGallery } from '@/components/public-partner-gallery';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = { title: 'شركاء القِرش', description: 'تعرّف على شركاء منصة القِرش في مجالي العقارات والسيارات.', alternates: { canonical: '/partners' } };
 
 export default async function PartnersPage() {
   const db = isSupabaseConfigured ? await createClient() : null;

@@ -4,10 +4,10 @@ import { PwaRegister } from '@/components/pwa-register';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://alqirsh.online'),
-  title: { default: 'القِرش | عقارات وسيارات', template: '%s | القِرش' },
+  title: { default: 'القِرش | عقارات وسيارات في مصر', template: '%s | القِرش' },
   description: 'منصة القِرش للعقارات والسيارات للبيع والإيجار.',
   keywords: ['عقارات', 'سيارات', 'بيع', 'إيجار', 'القِرش'],
-  openGraph: { type: 'website', locale: 'ar_EG', siteName: 'القِرش', title: 'القِرش | عقارات وسيارات', description: 'منصة القِرش للعقارات والسيارات للبيع والإيجار.' },
+  openGraph: { type: 'website', locale: 'ar_EG', siteName: 'القِرش', title: 'القِرش | عقارات وسيارات في مصر', description: 'منصة القِرش للعقارات والسيارات للبيع والإيجار.' },
   twitter: { card: 'summary_large_image' },
   manifest: '/manifest.webmanifest',
   applicationName: 'القِرش',

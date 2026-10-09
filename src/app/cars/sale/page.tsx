@@ -2,8 +2,13 @@ import Link from 'next/link';
 import { PublicHeader } from '@/components/public-header';
 import { PublicFooter } from '@/components/public-footer';
 import { CarsListingView } from '@/components/cars-listing-view';
+import { getPublicCars } from '@/lib/public-catalogue';
+import type { Metadata } from 'next';
 
-export default function CarsForSalePage() {
+export const metadata: Metadata = { title: 'سيارات للبيع في مصر', description: 'استعرض السيارات المعروضة للبيع في مصر، مع تفاصيل كل سيارة وسعرها ومواصفاتها على منصة القِرش.', alternates: { canonical: '/cars/sale' } };
+
+export default async function CarsForSalePage() {
+  const vehicles = await getPublicCars('sale');
   return (
     <main className="app-shell min-h-screen">
       <PublicHeader />
@@ -18,7 +23,7 @@ export default function CarsForSalePage() {
           <Link href="/cars/sale" className="border-b-2 border-[var(--brand)] px-4 py-3 font-bold text-[var(--brand)]">للبيع</Link>
           <Link href="/cars/rent" className="px-4 py-3 font-bold text-[var(--muted)] transition hover:text-[var(--ink)]">للإيجار</Link>
         </div>
-        <CarsListingView view="sale" />
+        <CarsListingView view="sale" vehicles={vehicles} />
       </section><PublicFooter />
     </main>
   );

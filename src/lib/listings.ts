@@ -26,8 +26,10 @@ export type VehicleListing = {
 
 export const listingStatuses = ['available', 'reserved', 'sold', 'rented', 'pending_review', 'temporarily_unavailable', 'unavailable', 'archived', 'withdrawn'] as const;
 export type ListingStatus = (typeof listingStatuses)[number];
-/** Public listings remain visible through their lifecycle; only archived records are hidden. */
-export const publicListingStatuses: ListingStatus[] = listingStatuses.filter((status) => status !== 'archived');
+/** Public pages never expose review drafts or archived listings. */
+export const publicListingStatuses: ListingStatus[] = listingStatuses.filter((status) => status !== 'archived' && status !== 'pending_review');
+/** Only currently bookable/available listings belong in the sitemap and search index. */
+export const indexableListingStatuses: ListingStatus[] = ['available', 'reserved'];
 export const listingStatusOptions: Array<{ value: ListingStatus; label: string }> = listingStatuses.map((status) => ({
   value: status,
   label: listingStatusLabel(status),
