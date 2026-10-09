@@ -116,10 +116,15 @@ export async function getVehiclePermissionSnapshot() {
 export async function saveUnifiedPermissions(userId:string,values:Record<string,boolean>){
  const db=await createClient();const {data:{user}}=await db.auth.getUser();if(!user)throw new Error('يرجى تسجيل الدخول.');
  const {data:profile}=await db.from('profiles').select('role').eq('id',user.id).single();if(profile?.role!=='admin')throw new Error('هذه العملية متاحة للمدير العام فقط.');
+ if(!userId||userId===user.id)throw new Error('لا يمكنك تغيير صلاحيات حسابك الحالي.');
+ const {data:target,error:targetError}=await db.from('profiles').select('id,email,role').eq('id',userId).maybeSingle();
+ if(targetError||!target)throw new Error('المستخدم المطلوب غير موجود.');
+ if(target.role==='admin')throw new Error('لا يمكن تعديل صلاحيات حساب مدير النظام الأساسي.');
  const keys=['properties_sale_view','properties_sale_create','properties_sale_update','properties_sale_delete','properties_sale_status','properties_rent_view','properties_rent_create','properties_rent_update','properties_rent_delete','properties_rent_status','properties_images_manage','properties_requests_view','properties_requests_manage','properties_management_view','properties_management_manage','cars_sale_view','cars_sale_create','cars_sale_update','cars_sale_delete','cars_rent_view','cars_rent_create','cars_rent_update','cars_rent_delete','cars_images_manage','bookings_view','bookings_create','bookings_update','bookings_cancel','bookings_customer_details','users_permissions_manage','activity_logs_view'];
+ if(Object.keys(values).some(key=>!keys.includes(key))||keys.some(key=>typeof values[key]!=='boolean'))throw new Error('قائمة الصلاحيات المرسلة غير صالحة؛ أعد تحميل الصفحة وحاول مجدداً.');
  const row=Object.fromEntries(keys.map(key=>[key,values[key]===true]));
  const {error}=await db.from('section_permissions').upsert({user_id:userId,...row,updated_at:new Date().toISOString(),updated_by:user.id},{onConflict:'user_id'});if(error)throw new Error(error.message);
- revalidatePath('/dashboard/users');revalidatePath('/dashboard');
+ revalidatePath('/dashboard/users');revalidatePath('/dashboard');revalidatePath('/dashboard/cars');revalidatePath('/dashboard/properties');revalidatePath('/dashboard/requests');revalidatePath('/dashboard/property-management');
 }
 
 export type ActivityFilters={search?:string;section?:string;action?:string;outcome?:string;since?:string;until?:string;sensitive?:boolean;page?:number};

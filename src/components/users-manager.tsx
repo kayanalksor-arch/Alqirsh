@@ -1,268 +1,56 @@
-﻿'use client';
+'use client';
+
 import { FormEvent, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createDashboardUser, deactivateDashboardUser, deleteDashboardUser, updateDashboardUser } from '@/app/actions/users';
+import { createDashboardUser, deleteDashboardUser, updateDashboardUser } from '@/app/actions/users';
 import { saveUnifiedPermissions } from '@/app/actions/vehicles';
 import { roleLabel } from '@/lib/listings';
 
-type User = {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  role: 'admin' | 'property_manager' | 'member';
-  status: 'active' | 'inactive';
-  created_at: string | null;
-  vehicle_permissions?: Array<Record<string, boolean>>;
-  section_permissions?: Array<Record<string, boolean|string>>;
+type User = { id: string; full_name: string | null; email: string | null; role: string; status: string; created_at: string | null };
+const groups: { title: string; keys: string[] }[] = [
+  { title: 'إدارة التطبيق', keys: ['dashboard_view', 'public_site_view', 'users_permissions_manage', 'activity_logs_view', 'settings_manage'] },
+  { title: 'عقارات البيع', keys: ['properties_sale_view', 'properties_sale_create', 'properties_sale_update', 'properties_sale_delete', 'properties_sale_status'] },
+  { title: 'عقارات الإيجار', keys: ['properties_rent_view', 'properties_rent_create', 'properties_rent_update', 'properties_rent_delete', 'properties_rent_status'] },
+  { title: 'إدارة الأملاك', keys: ['properties_management_view', 'properties_management_manage'] },
+  { title: 'السيارات للبيع', keys: ['cars_sale_view', 'cars_sale_create', 'cars_sale_update', 'cars_sale_delete'] },
+  { title: 'السيارات للإيجار', keys: ['cars_rent_view', 'cars_rent_create', 'cars_rent_update', 'cars_rent_delete', 'cars_images_manage'] },
+  { title: 'الحجوزات', keys: ['bookings_view', 'bookings_create', 'bookings_update', 'bookings_cancel', 'bookings_customer_details'] },
+  { title: 'الطلبات والمرفقات', keys: ['properties_images_manage', 'properties_requests_view', 'properties_requests_manage'] },
+];
+const labels: Record<string, string> = {
+  dashboard_view: 'عرض لوحة التحكم', public_site_view: 'عرض الموقع العام', users_permissions_manage: 'إدارة المستخدمين والصلاحيات', activity_logs_view: 'عرض سجل الحركة', settings_manage: 'إدارة الإعدادات',
+  properties_sale_view: 'عرض العقارات', properties_sale_create: 'إضافة عقار', properties_sale_update: 'تعديل عقار', properties_sale_delete: 'حذف أو أرشفة عقار', properties_sale_status: 'تغيير حالة العقار',
+  properties_rent_view: 'عرض العقارات', properties_rent_create: 'إضافة عقار', properties_rent_update: 'تعديل عقار', properties_rent_delete: 'حذف أو أرشفة عقار', properties_rent_status: 'تغيير حالة العقار',
+  properties_management_view: 'عرض سجلات الأملاك', properties_management_manage: 'إدارة سجلات الأملاك',
+  cars_sale_view: 'عرض السيارات', cars_sale_create: 'إضافة سيارة', cars_sale_update: 'تعديل سيارة', cars_sale_delete: 'حذف أو أرشفة سيارة', cars_rent_view: 'عرض السيارات', cars_rent_create: 'إضافة سيارة', cars_rent_update: 'تعديل سيارة', cars_rent_delete: 'حذف أو أرشفة سيارة', cars_images_manage: 'إدارة صور السيارات',
+  bookings_view: 'عرض الحجوزات', bookings_create: 'إنشاء حجز', bookings_update: 'تعديل الحجز', bookings_cancel: 'إلغاء الحجز', bookings_customer_details: 'عرض بيانات العملاء', properties_images_manage: 'إدارة صور ومرفقات العقارات', properties_requests_view: 'عرض الطلبات', properties_requests_manage: 'إدارة الطلبات',
 };
-const permissionGroups:[string,string[]][]=[['عقارات البيع',['properties_sale_view','properties_sale_create','properties_sale_update','properties_sale_delete','properties_sale_status']],['عقارات الإيجار',['properties_rent_view','properties_rent_create','properties_rent_update','properties_rent_delete','properties_rent_status']],['إدارة الأملاك',['properties_management_view','properties_management_manage']],['السيارات للبيع',['cars_sale_view','cars_sale_create','cars_sale_update','cars_sale_delete']],['السيارات للإيجار',['cars_rent_view','cars_rent_create','cars_rent_update','cars_rent_delete','cars_images_manage']],['الحجوزات',['bookings_view','bookings_create','bookings_update','bookings_cancel','bookings_customer_details']],['المرفقات والطلبات',['properties_images_manage','properties_requests_view','properties_requests_manage']],['إدارة المستخدمين والسجل',['users_permissions_manage','activity_logs_view']]];
-const permissionLabels:Record<string,string>={properties_sale_view:'عرض',properties_sale_create:'إضافة',properties_sale_update:'تعديل',properties_sale_delete:'أرشفة أو حذف',properties_sale_status:'تغيير الحالة',properties_rent_view:'عرض',properties_rent_create:'إضافة',properties_rent_update:'تعديل',properties_rent_delete:'أرشفة أو حذف',properties_rent_status:'تغيير الحالة',properties_management_view:'عرض سجلات الأملاك',properties_management_manage:'إدارة سجلات الأملاك',cars_sale_view:'عرض',cars_sale_create:'إضافة',cars_sale_update:'تعديل',cars_sale_delete:'أرشفة أو حذف',cars_rent_view:'عرض',cars_rent_create:'إضافة',cars_rent_update:'تعديل',cars_rent_delete:'أرشفة أو حذف',cars_images_manage:'إدارة الصور',bookings_view:'عرض الحجوزات',bookings_create:'إنشاء حجز',bookings_update:'تعديل الحجز',bookings_cancel:'إلغاء الحجز',bookings_customer_details:'عرض بيانات العملاء',properties_images_manage:'إدارة الصور والمرفقات',properties_requests_view:'عرض الطلبات',properties_requests_manage:'إدارة الطلبات',users_permissions_manage:'إدارة المستخدمين والصلاحيات',activity_logs_view:'عرض سجل الحركة'};
-
-const empty: {
-  fullName: string;
-  email: string;
-  password: string;
-  role: 'admin' | 'property_manager' | 'member';
-  status: 'active' | 'inactive';
-} = {
-  fullName: '',
-  email: '',
-  password: '',
-  role: 'member',
-  status: 'active',
-};
+const permissionKeys = groups.flatMap(group => group.keys).filter(key => key in labels);
+const empty = { fullName: '', email: '', password: '', role: 'member' as 'admin' | 'property_manager' | 'member', status: 'active' as 'active' | 'inactive' };
 
 export function UsersManager({ users }: { users: User[] }) {
-  const router=useRouter();
-  const [q, setQ] = useState('');
-  const [role, setRole] = useState('');
-  const [status, setStatus] = useState('');
-  const [form, setForm] = useState(empty);
-  const [editing, setEditing] = useState<User | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [message, setMessage] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [permissionsUser,setPermissionsUser]=useState<User|null>(null);
-  const [vehiclePermissions,setVehiclePermissions]=useState<Record<string,boolean>>({});
-
-  const shown = useMemo(
-    () =>
-      users.filter(
-        (u) =>
-          (!q || `${u.full_name} ${u.email}`.toLowerCase().includes(q.toLowerCase())) &&
-          (!role || u.role === role) &&
-          (!status || u.status === status),
-      ),
-    [users, q, role, status],
-  );
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      if (editing) {
-        await updateDashboardUser(editing.id, {
-          fullName: form.fullName,
-          role: form.role,
-          status: form.status,
-        });
-      } else {
-        await createDashboardUser(form);
-      }
-
-      setMessage('تم حفظ المستخدم بنجاح.');
-      setForm(empty);
-      setEditing(null);
-      setIsFormOpen(false);
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'تعذر حفظ المستخدم.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function open(u?: User) {
-    setEditing(u ?? null);
-    setForm(
-      u
-        ? { fullName: u.full_name ?? '', email: u.email ?? '', password: '', role: u.role, status: u.status }
-        : empty,
-    );
-    setIsFormOpen(true);
-  }
-
-  return (
-    <main className="p-5 lg:p-9">
-      <div className="panel flex flex-wrap gap-3 rounded-2xl p-4">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="min-h-11 flex-1 rounded-xl border border-[var(--line)] bg-transparent px-3"
-          placeholder="بحث بالاسم أو البريد"
-        />
-
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3"
-        >
-          <option value="">كل الأدوار</option>
-          <option value="admin">مدير النظام</option>
-          <option value="property_manager">مدير أملاك</option>
-          <option value="member">عضو</option>
-        </select>
-
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3"
-        >
-          <option value="">كل الحالات</option>
-          <option value="active">نشط</option>
-          <option value="inactive">غير نشط</option>
-        </select>
-
-        <button
-          type="button"
-          onClick={() => open()}
-          className="min-h-11 rounded-xl bg-[var(--brand)] px-4 font-bold text-white"
-        >
-          + إضافة مستخدم
-        </button>
-      </div>
-
-      {message && <p role="status" className="mt-4 rounded-xl border border-[var(--line)] p-3">{message}</p>}
-
-      <section className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
-        {shown.map((u) => (
-          <article key={u.id} className="panel rounded-2xl p-5">
-            <h2 className="font-black">{u.full_name || 'مستخدم بلا اسم'}</h2>
-            <p className="mt-1 break-all text-sm text-[var(--muted)]">{u.email}</p>
-            <p className="mt-3 text-sm">{roleLabel(u.role)} · {u.status === 'active' ? 'نشط' : 'غير نشط'}</p>
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                onClick={() => open(u)}
-                className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm font-bold"
-              >
-                تعديل
-              </button>
-              <button type="button" onClick={()=>{setPermissionsUser(u);setVehiclePermissions(u.section_permissions?.[0] as Record<string,boolean>??{});}} className="rounded-lg border border-emerald-300 px-3 py-2 text-sm font-bold">الصلاحيات</button>
-
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!confirm('هل أنت متأكد من تفعيل هذا المستخدم؟')) return;
-                  try {
-                    await deactivateDashboardUser(u.id);
-                    setMessage('تم تفعيل المستخدم بنجاح.');
-                  } catch (e) {
-                    setMessage(e instanceof Error ? e.message : 'تعذر التفعيل.');
-                  }
-                }}
-                className="rounded-lg border border-amber-300 px-3 py-2 text-sm font-bold text-amber-700"
-              >
-                تفعيل
-              </button>
-
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!confirm('هل أنت متأكد من حذف هذا المستخدم نهائياً؟ سيتم حذف الحساب من التطبيق ومن التخزين.')) return;
-                  try {
-                    await deleteDashboardUser(u.id);
-                    setMessage('تم حذف المستخدم نهائياً.');
-                  } catch (e) {
-                    setMessage(e instanceof Error ? e.message : 'تعذر حذف المستخدم.');
-                  }
-                }}
-                className="rounded-lg border border-red-300 px-3 py-2 text-sm font-bold text-red-700"
-              >
-                حذف
-              </button>
-            </div>
-          </article>
-        ))}
-      </section>
-
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
-          <form onSubmit={submit} className="w-full max-w-lg rounded-2xl bg-[var(--surface)] p-6">
-            <h2 className="text-xl font-black">{editing ? 'تعديل مستخدم' : 'إضافة مستخدم'}</h2>
-
-            <div className="mt-4 grid gap-3">
-              <input
-                required
-                value={form.fullName}
-                onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                placeholder="الاسم"
-                className="rounded-xl border border-[var(--line)] bg-transparent p-3"
-              />
-
-              {!editing && (
-                <>
-                  <input
-                    required
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    placeholder="البريد الإلكتروني"
-                    className="rounded-xl border border-[var(--line)] bg-transparent p-3"
-                  />
-
-                  <input
-                    required
-                    minLength={8}
-                    type="password"
-                    value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    placeholder="كلمة المرور"
-                    className="rounded-xl border border-[var(--line)] bg-transparent p-3"
-                  />
-                </>
-              )}
-
-              <select
-                value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value as typeof form.role })}
-                className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3"
-              >
-                <option value="member">عضو</option>
-                <option value="property_manager">مدير أملاك</option>
-                <option value="admin">مدير النظام</option>
-              </select>
-
-              <select
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value as typeof form.status })}
-                className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3"
-              >
-                <option value="active">نشط</option>
-                <option value="inactive">غير نشط</option>
-              </select>
-            </div>
-
-            <div className="mt-5 flex gap-3">
-              <button type="submit" disabled={saving} className="rounded-xl bg-[var(--brand)] px-4 py-3 font-bold text-white">
-                حفظ
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setEditing(null);
-                  setForm(empty);
-                  setIsFormOpen(false);
-                }}
-                className="rounded-xl border border-[var(--line)] px-4 py-3 font-bold"
-              >
-                إلغاء
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-      {permissionsUser&&<div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"><section className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-[var(--surface)] p-6" dir="rtl"><h2 className="text-xl font-black">صلاحيات {permissionsUser.full_name||permissionsUser.email}</h2><p className="mt-1 text-sm text-[var(--muted)]">الدور: {roleLabel(permissionsUser.role)} · الحالة: {permissionsUser.status==='active'?'نشط':'غير نشط'}</p>{permissionGroups.map(([group,keys])=><fieldset key={group} className="mt-5 rounded-2xl border border-[var(--line)] p-4"><legend className="px-2 font-black">{group}</legend><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{keys.map(key=><label key={key} className="flex items-center gap-2 rounded-lg p-2 text-sm"><input type="checkbox" checked={vehiclePermissions[key]===true} onChange={event=>setVehiclePermissions({...vehiclePermissions,[key]:event.target.checked})}/>{permissionLabels[key]}</label>)}</div></fieldset>)}<p className="mt-3 text-xs text-[var(--muted)]">آخر تحديث: {String(permissionsUser.section_permissions?.[0]?.updated_at??'لا يوجد')}</p><div className="mt-5 flex justify-end gap-2"><button onClick={()=>setPermissionsUser(null)} className="rounded-xl border border-[var(--line)] px-4 py-2">إلغاء</button><button disabled={saving} onClick={async()=>{setSaving(true);try{await saveUnifiedPermissions(permissionsUser.id,vehiclePermissions);setMessage('تم حفظ الصلاحيات.');setPermissionsUser(null);router.refresh();}catch(error){setMessage(error instanceof Error?error.message:'تعذر حفظ الصلاحيات.');}finally{setSaving(false);}}} className="rounded-xl bg-[var(--brand)] px-4 py-2 font-bold text-white">حفظ الصلاحيات</button></div></section></div>}
-    </main>
-  );
+  const router = useRouter();
+  const [q, setQ] = useState(''); const [role, setRole] = useState(''); const [status, setStatus] = useState('');
+  const [form, setForm] = useState(empty); const [editing, setEditing] = useState<User | null>(null); const [formOpen, setFormOpen] = useState(false);
+  const [message, setMessage] = useState(''); const [saving, setSaving] = useState(false); const [page, setPage] = useState(1);
+  const [permissionsUser, setPermissionsUser] = useState<User | null>(null); const [permissions, setPermissions] = useState<Record<string, boolean>>({}); const [permissionsLoading, setPermissionsLoading] = useState(false);
+  const roles = useMemo(() => Array.from(new Set(users.map(user => user.role).filter(Boolean))).sort(), [users]);
+  const filtered = useMemo(() => users.filter(user => (!q || `${user.full_name ?? ''} ${user.email ?? ''}`.toLowerCase().includes(q.toLowerCase())) && (!role || user.role === role) && (!status || user.status === status)), [users, q, role, status]);
+  const pages = Math.max(1, Math.ceil(filtered.length / 24)); const shown = filtered.slice((page - 1) * 24, page * 24);
+  async function submit(event: FormEvent) { event.preventDefault(); setSaving(true); try { if (editing) await updateDashboardUser(editing.id, { fullName: form.fullName, role: form.role, status: form.status }); else await createDashboardUser(form); setMessage('تم حفظ بيانات المستخدم.'); setForm(empty); setEditing(null); setFormOpen(false); router.refresh(); } catch (error) { setMessage(error instanceof Error ? error.message : 'تعذر حفظ المستخدم.'); } finally { setSaving(false); } }
+  function openForm(user?: User) { setEditing(user ?? null); setForm(user ? { ...empty, fullName: user.full_name ?? '', email: user.email ?? '', role: user.role as typeof empty.role, status: user.status as typeof empty.status } : empty); setFormOpen(true); }
+  async function openPermissions(user: User) { setPermissionsUser(user); setPermissions({}); setPermissionsLoading(true); try { const response = await fetch(`/api/dashboard/users/${user.id}/permissions`, { cache: 'no-store' }); const result = await response.json(); if (!response.ok) throw new Error(result.error || 'تعذر تحميل الصلاحيات.'); setPermissions(Object.fromEntries(permissionKeys.map(key => [key, result.permissions?.[key] === true]))); } catch (error) { setMessage(error instanceof Error ? error.message : 'تعذر تحميل الصلاحيات.'); setPermissionsUser(null); } finally { setPermissionsLoading(false); } }
+  const enabledCount = (keys: string[]) => keys.filter(key => permissions[key]).length;
+  return <main className="p-4 sm:p-5 lg:p-9" dir="rtl">
+    <div className="panel flex flex-wrap gap-3 rounded-2xl p-4"><input value={q} onChange={event => { setQ(event.target.value); setPage(1); }} className="min-h-11 min-w-48 flex-1 rounded-xl border border-[var(--line)] bg-transparent px-3" placeholder="بحث بالاسم أو البريد الإلكتروني" aria-label="بحث المستخدمين" />
+      <select value={role} onChange={event => { setRole(event.target.value); setPage(1); }} className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3"><option value="">كل الأدوار ({roles.length})</option>{roles.map(value => <option key={value} value={value}>{roleLabel(value)}</option>)}</select>
+      <select value={status} onChange={event => { setStatus(event.target.value); setPage(1); }} className="min-h-11 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3"><option value="">كل الحالات</option><option value="active">نشط</option><option value="inactive">غير نشط</option></select>
+      <button type="button" onClick={() => openForm()} className="min-h-11 rounded-xl bg-[var(--brand)] px-4 font-bold text-white">+ إضافة مستخدم</button></div>
+    {message && <p role="status" className="mt-4 rounded-xl border border-[var(--line)] p-3">{message}</p>}
+    <div className="mt-4 flex items-center justify-between text-sm text-[var(--muted)]"><span>عرض {filtered.length ? (page - 1) * 24 + 1 : 0}–{Math.min(page * 24, filtered.length)} من {filtered.length} مستخدم</span><span>{roles.map(value => `${roleLabel(value)}: ${users.filter(user => user.role === value).length}`).join(' · ')}</span></div>
+    {shown.length ? <section className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{shown.map(user => <article key={user.id} className="panel min-w-0 rounded-2xl p-4 sm:p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate font-black">{user.full_name || 'مستخدم بلا اسم'}</h2><p className="mt-1 break-all text-sm text-[var(--muted)]">{user.email}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${user.status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'}`}>{user.status === 'active' ? 'نشط' : 'غير نشط'}</span></div><p className="mt-3 text-sm">{roleLabel(user.role)} <span className="text-[var(--muted)]">· أُنشئ {user.created_at ? new Date(user.created_at).toLocaleDateString('ar-EG') : '—'}</span></p><div className="mt-4 flex flex-wrap gap-2"><button onClick={() => openForm(user)} className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm font-bold">تعديل</button><button onClick={() => void openPermissions(user)} className="rounded-lg border border-emerald-300 px-3 py-2 text-sm font-bold">إدارة الصلاحيات</button><button onClick={async () => { const next = user.status === 'active' ? 'inactive' : 'active'; if (!confirm(`هل تريد ${next === 'active' ? 'تفعيل' : 'تعطيل'} حساب ${user.full_name || user.email}؟`)) return; try { await updateDashboardUser(user.id, { fullName: user.full_name ?? '', role: user.role as typeof empty.role, status: next }); setMessage(`تم ${next === 'active' ? 'تفعيل' : 'تعطيل'} الحساب.`); router.refresh(); } catch (error) { setMessage(error instanceof Error ? error.message : 'تعذر تحديث حالة الحساب.'); } }} className="rounded-lg border border-amber-300 px-3 py-2 text-sm font-bold">{user.status === 'active' ? 'تعطيل' : 'تفعيل'}</button><button onClick={async () => { if (!confirm(`حذف حساب ${user.full_name || user.email} نهائياً؟`)) return; try { await deleteDashboardUser(user.id); setMessage('تم حذف المستخدم.'); router.refresh(); } catch (error) { setMessage(error instanceof Error ? error.message : 'تعذر حذف المستخدم.'); } }} className="rounded-lg border border-red-300 px-3 py-2 text-sm font-bold text-red-700">حذف</button></div></article>)}</section> : <section className="panel mt-4 rounded-2xl p-8 text-center"><h2 className="font-black">{users.length ? 'لا توجد نتائج مطابقة' : 'لا يوجد مستخدمون'}</h2><p className="mt-2 text-sm text-[var(--muted)]">{users.length ? 'غيّر البحث أو عوامل التصفية لعرض المستخدمين.' : 'ستظهر الحسابات المسجلة هنا.'}</p></section>}
+    {pages > 1 && <nav className="mt-5 flex items-center justify-center gap-3" aria-label="صفحات المستخدمين"><button disabled={page === 1} onClick={() => setPage(page - 1)} className="rounded-lg border border-[var(--line)] px-4 py-2 disabled:opacity-40">السابق</button><span className="text-sm">صفحة {page} من {pages}</span><button disabled={page === pages} onClick={() => setPage(page + 1)} className="rounded-lg border border-[var(--line)] px-4 py-2 disabled:opacity-40">التالي</button></nav>}
+    {formOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"><form onSubmit={submit} className="w-full max-w-lg rounded-2xl bg-[var(--surface)] p-5 sm:p-6"><h2 className="text-xl font-black">{editing ? 'تعديل مستخدم' : 'إضافة مستخدم'}</h2><div className="mt-4 grid gap-3"><input required value={form.fullName} onChange={event => setForm({ ...form, fullName: event.target.value })} placeholder="الاسم" className="rounded-xl border border-[var(--line)] bg-transparent p-3" />{!editing && <><input required type="email" value={form.email} onChange={event => setForm({ ...form, email: event.target.value })} placeholder="البريد الإلكتروني" className="rounded-xl border border-[var(--line)] bg-transparent p-3" /><input required minLength={8} type="password" value={form.password} onChange={event => setForm({ ...form, password: event.target.value })} placeholder="كلمة المرور" className="rounded-xl border border-[var(--line)] bg-transparent p-3" /></>}<select value={form.role} onChange={event => setForm({ ...form, role: event.target.value as typeof form.role })} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3"><option value="member">عضو</option><option value="property_manager">مدير أملاك</option><option value="admin">مدير النظام</option></select><select value={form.status} onChange={event => setForm({ ...form, status: event.target.value as typeof form.status })} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3"><option value="active">نشط</option><option value="inactive">غير نشط</option></select></div><div className="mt-5 flex gap-3"><button disabled={saving} className="rounded-xl bg-[var(--brand)] px-4 py-3 font-bold text-white">حفظ</button><button type="button" onClick={() => setFormOpen(false)} className="rounded-xl border border-[var(--line)] px-4 py-3 font-bold">إلغاء</button></div></form></div>}
+    {permissionsUser && <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-3 sm:p-4"><section className="max-h-[94vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-[var(--surface)] p-4 sm:p-6" dir="rtl"><h2 className="text-xl font-black">صلاحيات {permissionsUser.full_name || permissionsUser.email}</h2><p className="mt-1 text-sm text-[var(--muted)]">الدور: {roleLabel(permissionsUser.role)} · عدّل المنح الخاصة بهذا المستخدم، ولا تنتقل الصلاحيات بين الأقسام تلقائياً.</p>{permissionsLoading ? <p className="py-10 text-center">جارٍ تحميل الصلاحيات…</p> : <><div className="mt-4 flex flex-wrap gap-2"><button onClick={() => setPermissions(Object.fromEntries(permissionKeys.map(key => [key, true])))} className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm">تحديد جميع الصلاحيات</button><button onClick={() => setPermissions(Object.fromEntries(permissionKeys.map(key => [key, false])))} className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm">إلغاء تحديد الكل</button></div>{groups.filter(group => group.keys.some(key => key in labels)).map(group => { const keys = group.keys.filter(key => key in labels); return <details key={group.title} open className="mt-4 rounded-2xl border border-[var(--line)] p-4"><summary className="cursor-pointer font-black">{group.title} <span className="text-sm font-normal text-[var(--muted)]">({enabledCount(keys)} من {keys.length})</span></summary><div className="mt-3 flex flex-wrap gap-2"><button onClick={() => setPermissions(current => ({ ...current, ...Object.fromEntries(keys.map(key => [key, true])) }))} className="text-xs text-emerald-700">تحديد المجموعة</button><button onClick={() => setPermissions(current => ({ ...current, ...Object.fromEntries(keys.map(key => [key, false])) }))} className="text-xs text-[var(--muted)]">إلغاء تحديد المجموعة</button></div><div className="mt-2 grid gap-1 sm:grid-cols-2 lg:grid-cols-3">{keys.map(key => <label key={key} className={`flex items-center gap-2 rounded-lg p-2 text-sm ${key.includes('delete') || key.includes('users_permissions') ? 'text-red-700 dark:text-red-300' : ''}`}><input type="checkbox" checked={permissions[key] === true} onChange={event => setPermissions(current => ({ ...current, [key]: event.target.checked }))} />{labels[key]}</label>)}</div></details>; })}<aside className="mt-4 rounded-xl bg-[var(--canvas)] p-3 text-sm"><b>ملخص المنح المحددة</b><p className="mt-1">{groups.filter(group => group.keys.some(key => permissions[key])).map(group => `${group.title} (${enabledCount(group.keys)})`).join(' · ') || 'لا توجد صلاحيات محددة'} · الإجمالي {permissionKeys.filter(key => permissions[key]).length}</p></aside></> }<div className="mt-5 flex justify-end gap-2"><button onClick={() => setPermissionsUser(null)} className="rounded-xl border border-[var(--line)] px-4 py-2">إلغاء</button><button disabled={saving || permissionsLoading} onClick={async () => { if (!confirm(`حفظ ${permissionKeys.filter(key => permissions[key]).length} صلاحية للمستخدم ${permissionsUser.full_name || permissionsUser.email}؟`)) return; setSaving(true); try { await saveUnifiedPermissions(permissionsUser.id, Object.fromEntries(permissionKeys.map(key => [key, permissions[key] === true]))); setMessage('تم حفظ الصلاحيات.'); setPermissionsUser(null); router.refresh(); } catch (error) { setMessage(error instanceof Error ? error.message : 'تعذر حفظ الصلاحيات.'); } finally { setSaving(false); } }} className="rounded-xl bg-[var(--brand)] px-4 py-2 font-bold text-white">حفظ الصلاحيات</button></div></section></div>}
+  </main>;
 }
