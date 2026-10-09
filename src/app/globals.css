@@ -58,6 +58,11 @@ a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
+.permission-checkbox { appearance: none; -webkit-appearance: none; display: inline-grid; flex: 0 0 1.125rem; width: 1.125rem; height: 1.125rem; min-width: 1.125rem; margin: 0; place-content: center; border: 1.5px solid var(--input); border-radius: .35rem; background: var(--surface); cursor: pointer; }
+.permission-checkbox::before { content: ""; width: .58rem; height: .34rem; transform: rotate(-45deg) scale(0); transform-origin: center; border-bottom: 2px solid var(--primary-foreground); border-left: 2px solid var(--primary-foreground); transition: transform .12s ease-in-out; }
+.permission-checkbox:checked { border-color: var(--primary); background: var(--primary); }
+.permission-checkbox:checked::before { transform: rotate(-45deg) scale(1); }
+.permission-checkbox:focus-visible { outline: 3px solid color-mix(in srgb, var(--focus) 55%, transparent); outline-offset: 2px; }
 input, textarea, select { color: var(--foreground); background-color: var(--surface-raised); border-color: var(--input); }
 input::placeholder, textarea::placeholder { color: var(--subtle); opacity: 1; }
 select option { background: var(--popover); color: var(--popover-foreground); }
