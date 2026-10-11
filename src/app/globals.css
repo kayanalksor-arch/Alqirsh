@@ -19,7 +19,7 @@
   --ink: var(--foreground); --muted: var(--muted-foreground); --subtle: #84928a; --line: var(--border);
   --brand: var(--primary); --brand-hover: var(--primary-hover); --brand-active: var(--primary-active); --brand-deep: #073e33;
   --accent: var(--accent-foreground); --success: var(--success-foreground); --warning: var(--warning-foreground); --danger: var(--destructive); --info: var(--info-foreground);
-  --focus: var(--ring); --shadow: 0 12px 30px rgb(12 42 31 / 7%);
+  --focus: var(--ring); --shadow: 0 12px 30px rgb(12 42 31 / 7%); --social-tiktok: #111827;
   color-scheme: light;
 }
 
@@ -42,7 +42,7 @@
   --ink: var(--foreground); --muted: var(--muted-foreground); --subtle: #82948a; --line: var(--border);
   --brand: var(--primary); --brand-hover: var(--primary-hover); --brand-active: var(--primary-active); --brand-deep: #0b4538;
   --accent: var(--accent-foreground); --success: var(--success-foreground); --warning: var(--warning-foreground); --danger: var(--destructive); --info: var(--info-foreground);
-  --focus: var(--ring); --shadow: 0 16px 36px rgb(0 0 0 / 24%);
+  --focus: var(--ring); --shadow: 0 16px 36px rgb(0 0 0 / 24%); --social-tiktok: #f5f5f5;
   color-scheme: dark;
 }
 

@@ -25,6 +25,7 @@ type Property = {
 };
 
 type PropertyKind = 'sale' | 'rental';
+type PropertyImage = { id: string; property_id: string; image_url: string; image_path: string; sort_order: number };
 
 type FormFields = {
   title: string;
@@ -75,7 +76,7 @@ async function ensureManagerProfile(db: ReturnType<typeof createClient>) {
 
 export function PropertyManager() {
   const [properties, setProperties] = useState<Property[]>([]);
-  const [images, setImages] = useState<Record<string, string[]>>({});
+  const [images, setImages] = useState<Record<string, PropertyImage[]>>({});
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [kindFilter, setKindFilter] = useState<'' | 'sale' | 'rental'>('');
@@ -85,6 +86,7 @@ export function PropertyManager() {
   const [message, setMessage] = useState('');
   const [form, setForm] = useState<FormFields | null>(null);
   const [editing, setEditing] = useState<Property | null>(null);
+  const [pendingDeleteImageIds, setPendingDeleteImageIds] = useState<string[]>([]);
   const [viewing, setViewing] = useState<Property | null>(null);
   const [removing, setRemoving] = useState<Property | null>(null);
   const [fullImage, setFullImage] = useState<string | null>(null);
@@ -142,25 +144,26 @@ export function PropertyManager() {
       }
 
       // Load images for sale properties
-      const { data: saleMedia } = await db
+      const { data: saleMedia, error: saleMediaError } = await db
         .from('property_images')
-        .select('property_id,image_url,image_path,sort_order')
+        .select('id,property_id,image_url,image_path,sort_order')
         .eq('property_type', 'sale')
         .order('sort_order');
 
       // Load images for rental properties
-      const { data: rentalMedia } = await db
+      const { data: rentalMedia, error: rentalMediaError } = await db
         .from('property_images')
-        .select('property_id,image_url,image_path,sort_order')
+        .select('id,property_id,image_url,image_path,sort_order')
         .eq('property_type', 'rental')
         .order('sort_order');
 
-      const next: Record<string, string[]> = {};
+      if (saleMediaError || rentalMediaError) throw saleMediaError ?? rentalMediaError;
+      const next: Record<string, PropertyImage[]> = {};
       for (const image of [...(saleMedia ?? []), ...(rentalMedia ?? [])]) {
         const imageUrl =
           image.image_url ||
           db.storage.from('listing-images').getPublicUrl(image.image_path).data.publicUrl;
-        next[image.property_id] = [...(next[image.property_id] ?? []), imageUrl];
+        next[image.property_id] = [...(next[image.property_id] ?? []), { ...image, image_url: imageUrl }];
       }
       setImages(next);
     } catch (err) {
@@ -202,6 +205,7 @@ export function PropertyManager() {
   );
 
   const openForm = (p?: Property) => {
+    setPendingDeleteImageIds([]);
     if (p) {
       setForm({
         title: p.title,
@@ -229,6 +233,7 @@ export function PropertyManager() {
   const closeForm = () => {
     setForm(null);
     setEditing(null);
+    setPendingDeleteImageIds([]);
   };
 
   const handleImageAdd = (files: FileList | null) => {
@@ -242,6 +247,10 @@ export function PropertyManager() {
         ...form,
         image_files: form.image_files.filter((_, i) => i !== index),
       });
+  };
+
+  const markExistingImageForRemoval = (imageId: string) => {
+    setPendingDeleteImageIds((previous) => previous.includes(imageId) ? previous : [...previous, imageId]);
   };
 
   const submitForm = async (e: FormEvent<HTMLFormElement>) => {
@@ -290,7 +299,8 @@ export function PropertyManager() {
       }
 
       // Upload images
-      for (const sourceFile of form.image_files) {
+      const nextSortOrder = Math.max(-1, ...(editing ? images[editing.id] ?? [] : []).map((image) => image.sort_order)) + 1;
+      for (const [imageIndex, sourceFile] of form.image_files.entries()) {
         const file = await addBrandWatermark(sourceFile);
         const ext = file.name.split('.').pop() || 'jpg';
         const path = `properties/${form.kind}/${propertyId}/${crypto.randomUUID()}.${ext}`;
@@ -304,9 +314,21 @@ export function PropertyManager() {
           property_id: propertyId,
           image_path: path,
           image_url: imageUrl,
-          sort_order: form.image_files.indexOf(sourceFile),
+          sort_order: nextSortOrder + imageIndex,
         });
         if (imageError) throw imageError;
+      }
+
+      if (editing && pendingDeleteImageIds.length) {
+        const { data: removed, error: deleteError } = await db.from('property_images')
+          .delete().eq('property_id', propertyId).eq('property_type', form.kind)
+          .in('id', pendingDeleteImageIds).select('image_path');
+        if (deleteError) throw deleteError;
+        const paths = (removed ?? []).map((image) => image.image_path).filter(Boolean);
+        if (paths.length) {
+          const { error: storageError } = await db.storage.from('listing-images').remove(paths);
+          if (storageError) throw storageError;
+        }
       }
 
       closeForm();
@@ -444,7 +466,7 @@ export function PropertyManager() {
                       <td className="p-3">
                         {images[p.id]?.[0] ? (
                           <img
-                            src={images[p.id][0]}
+                            src={images[p.id][0].image_url}
                             alt={p.title}
                             className="h-10 w-10 rounded object-cover"
                           />
@@ -632,6 +654,14 @@ export function PropertyManager() {
               {/* Images */}
               <div>
                 <label className="block text-sm font-bold mb-2">الصور</label>
+                {editing && <div className="mb-3">
+                  <p className="mb-2 text-sm font-bold">الصور المحفوظة حاليًا</p>
+                  {(images[editing.id] ?? []).filter((image) => !pendingDeleteImageIds.includes(image.id)).length === 0 ?
+                    <p className="rounded-xl border border-dashed border-[var(--line)] p-4 text-sm text-[var(--muted)]">لا توجد صور محفوظة لهذا العقار.</p> :
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{(images[editing.id] ?? []).filter((image) => !pendingDeleteImageIds.includes(image.id)).map((image) => <div key={image.id} className="relative overflow-hidden rounded-lg border border-[var(--line)]"><img src={image.image_url} alt={`صورة محفوظة للعقار ${editing.title}`} className="aspect-[4/3] w-full object-cover"/><button type="button" onClick={() => markExistingImageForRemoval(image.id)} aria-label="حذف هذه الصورة عند حفظ التعديل" className="absolute left-2 top-2 grid size-9 place-items-center rounded-full bg-black/70 text-white hover:bg-red-600"><Trash2 size={16}/></button></div>)}</div>}
+                  {pendingDeleteImageIds.length > 0 && <p className="mt-2 text-xs text-[var(--warning)]">سيتم حذف الصور المحددة عند حفظ التعديل. إلغاء النموذج يبقي الصور كما هي.</p>}
+                </div>}
+
                 {form.image_files.length > 0 && (
                   <div className="mb-3 grid gap-2 sm:grid-cols-2">
                     {form.image_files.map((file, i) => (
@@ -723,14 +753,14 @@ export function PropertyManager() {
 
             {images[viewing.id]?.[0] && (
               <div className="mb-4 relative">
-                <img
-                  src={images[viewing.id][0]}
+                  <img
+                    src={images[viewing.id][0].image_url}
                   alt={viewing.title}
                   className="h-64 w-full rounded-lg object-cover"
                 />
                 {images[viewing.id].length > 1 && (
                   <button
-                    onClick={() => setFullImage(images[viewing.id][0])}
+                    onClick={() => setFullImage(images[viewing.id][0].image_url)}
                     className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-black/50 rounded-lg transition"
                   >
                     <Download size={24} className="text-white" />

@@ -39,6 +39,8 @@ type FormFields = {
   image_files: File[];
 };
 
+type OfferImage = { id: string; property_id: string; image_url: string; image_path: string; sort_order: number };
+
 const blank = (): FormFields => ({ title: '', description: '', property_type: '', price: '', location: '', address: '', map_url: '', area: '', bedrooms: '', bathrooms: '', facade: '', status: 'pending_review', image_files: [] });
 
 async function ensureManagerProfile(db: ReturnType<typeof createClient>) {
@@ -55,7 +57,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   const table = kind === 'sale' ? 'sale_offers' : 'rental_offers';
   const entity = kind === 'sale' ? 'عرض بيع' : 'عرض إيجار';
   const [offers, setOffers] = useState<Offer[]>([]);
-  const [images, setImages] = useState<Record<string, string[]>>({});
+  const [images, setImages] = useState<Record<string, OfferImage[]>>({});
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -65,6 +67,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   const [form, setForm] = useState<FormFields | null>(null);
   const [editing, setEditing] = useState<Offer | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [pendingDeleteImageIds, setPendingDeleteImageIds] = useState<string[]>([]);
   const [viewing, setViewing] = useState<Offer | null>(null);
   const [removing, setRemoving] = useState<Offer | null>(null);
   const [fullImage, setFullImage] = useState<string | null>(null);
@@ -83,7 +86,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
 
       const [{ data, error }, { data: media }] = await Promise.all([
         db.from(table).select('id,title,description,property_type,price,location,address,map_url,area,bedrooms,bathrooms,facade,status').order('created_at', { ascending: false }),
-        db.from('property_images').select('property_id,image_url,image_path,sort_order').eq('property_type', kind).order('sort_order'),
+        db.from('property_images').select('id,property_id,image_url,image_path,sort_order').eq('property_type', kind).order('sort_order'),
       ]);
 
       if (error) {
@@ -94,10 +97,10 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
         setOffers((data ?? []) as Offer[]);
       }
 
-      const next: Record<string, string[]> = {};
+      const next: Record<string, OfferImage[]> = {};
       for (const image of media ?? []) {
         const imageUrl = image.image_url || db.storage.from('listing-images').getPublicUrl(image.image_path).data.publicUrl;
-        next[image.property_id] = [...(next[image.property_id] ?? []), imageUrl];
+        next[image.property_id] = [...(next[image.property_id] ?? []), { ...image, image_url: imageUrl }];
       }
       setImages(next);
     } catch (error) {
@@ -133,6 +136,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   const open = (offer?: Offer) => {
     setEditing(offer ?? null);
     setPendingFiles([]);
+    setPendingDeleteImageIds([]);
     setForm(
       offer ? {
         title: offer.title,
@@ -164,6 +168,10 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
     setForm((current) => current ? { ...current, image_files: (current.image_files ?? []).filter((_, itemIndex) => itemIndex !== index) } : current);
   }
 
+  function markExistingImageForRemoval(imageId: string) {
+    setPendingDeleteImageIds((previous) => previous.includes(imageId) ? previous : [...previous, imageId]);
+  }
+
   async function uploadFiles(db: ReturnType<typeof createClient>, offerId: string) {
     for (let index = 0; index < pendingFiles.length; index += 1) {
       const file = await addBrandWatermark(pendingFiles[index]);
@@ -172,7 +180,8 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
       const { error: uploadError } = await db.storage.from('listing-images').upload(path, file, { contentType: file.type, upsert: false });
       if (uploadError) throw uploadError;
       const imageUrl = db.storage.from('listing-images').getPublicUrl(path).data.publicUrl;
-      const { error: imageError } = await db.from('property_images').insert({ property_type: kind, property_id: offerId, image_path: path, image_url: imageUrl, sort_order: index });
+      const sortOrder = Math.max(-1, ...(images[offerId] ?? []).map((image) => image.sort_order)) + index + 1;
+      const { error: imageError } = await db.from('property_images').insert({ property_type: kind, property_id: offerId, image_path: path, image_url: imageUrl, sort_order: sortOrder });
       if (imageError) throw imageError;
     }
   }
@@ -229,6 +238,16 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
 
       try {
         await uploadFiles(db, response.data.id);
+        if (editing && pendingDeleteImageIds.length) {
+          const { data: removed, error: deleteError } = await db.from('property_images')
+            .delete().eq('property_id', editing.id).eq('property_type', kind).in('id', pendingDeleteImageIds).select('image_path');
+          if (deleteError) throw deleteError;
+          const paths = (removed ?? []).map((image) => image.image_path).filter(Boolean);
+          if (paths.length) {
+            const { error: storageError } = await db.storage.from('listing-images').remove(paths);
+            if (storageError) throw storageError;
+          }
+        }
         setMessage('تم حفظ العرض والصور بنجاح.');
         setForm(null);
         setEditing(null);
@@ -303,7 +322,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
           {shown.map((offer) => (
             <article key={offer.id} className="panel flex h-full flex-col overflow-hidden rounded-2xl">
               <div className="grid h-40 place-items-center bg-[var(--canvas)]">
-                {images[offer.id]?.[0] ? <img src={images[offer.id][0]} alt={offer.title} className="h-full w-full object-cover" /> : <ImagePlus className="text-[var(--subtle)]" size={28} />}
+                {images[offer.id]?.[0] ? <img src={images[offer.id][0].image_url} alt={offer.title} className="h-full w-full object-cover" /> : <ImagePlus className="text-[var(--subtle)]" size={28} />}
               </div>
 
               <div className="flex flex-1 flex-col p-5">
@@ -393,6 +412,14 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
                   <p className="text-xs text-[var(--muted)]">يمكنك إضافة عدة صور. سيتم رفع جميع الصور المختارة.</p>
                 </label>
 
+                {editing && <div className="md:col-span-2">
+                  <p className="mb-2 text-sm font-bold">الصور المحفوظة حاليًا</p>
+                  {(images[editing.id] ?? []).filter((image) => !pendingDeleteImageIds.includes(image.id)).length === 0 ?
+                    <p className="rounded-xl border border-dashed border-[var(--line)] p-4 text-sm text-[var(--muted)]">لا توجد صور محفوظة لهذا العرض.</p> :
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{(images[editing.id] ?? []).filter((image) => !pendingDeleteImageIds.includes(image.id)).map((image) => <div key={image.id} className="relative overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--canvas)]"><img src={image.image_url} alt={`صورة محفوظة للعرض ${editing.title}`} className="aspect-[4/3] w-full object-cover"/><button type="button" onClick={() => markExistingImageForRemoval(image.id)} aria-label="حذف هذه الصورة عند حفظ التعديل" className="absolute left-2 top-2 inline-flex size-9 items-center justify-center rounded-full bg-black/70 text-white hover:bg-red-600"><Trash2 size={16}/></button></div>)}</div>}
+                  {pendingDeleteImageIds.length > 0 && <p className="mt-2 text-xs text-[var(--warning)]">سيتم حذف الصور المحددة عند حفظ التعديل. إلغاء النموذج يبقي الصور كما هي.</p>}
+                </div>}
+
                 {form.image_files && form.image_files.length > 0 && (
                   <div className="md:col-span-2">
                     <p className="mb-3 text-sm font-bold">الصور المختارة:</p>
@@ -440,9 +467,9 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
 
             {images[viewing.id]?.length ? (
               <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {images[viewing.id].map((src, index) => (
-                  <button key={src + index} type="button" onClick={() => setFullImage(src)} className="h-36 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--canvas)] sm:h-44" aria-label={`فتح صورة العرض ${index + 1} بالحجم الكامل`}>
-                    <img src={src} alt={`${viewing.title} ${index + 1}`} className="h-full w-full object-cover transition hover:scale-105" />
+                {images[viewing.id].map((image, index) => (
+                  <button key={image.id} type="button" onClick={() => setFullImage(image.image_url)} className="h-36 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--canvas)] sm:h-44" aria-label={`فتح صورة العرض ${index + 1} بالحجم الكامل`}>
+                    <img src={image.image_url} alt={`${viewing.title} ${index + 1}`} className="h-full w-full object-cover transition hover:scale-105" />
                   </button>
                 ))}
               </div>

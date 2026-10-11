@@ -108,6 +108,8 @@ export function VehicleManager() {
   const [form, setForm] = useState<FormState>(blank());
   const [pendingImages, setPendingImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<{id:string;public_url:string;is_primary:boolean}[]>([]);
+  const [pendingDeleteImageIds, setPendingDeleteImageIds] = useState<string[]>([]);
+  const [imagesLoading, setImagesLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   
   const [viewOpen, setViewOpen] = useState(false);
@@ -190,8 +192,12 @@ export function VehicleManager() {
     }
     setPendingImages([]);
     setExistingImages([]);
+    setPendingDeleteImageIds([]);
     setFormOpen(true);
-    if (item) void getVehicleImages(item.id).then(setExistingImages).catch((error) => setMessage(error instanceof Error ? error.message : 'تعذر تحميل صور السيارة.'));
+    if (item) {
+      setImagesLoading(true);
+      void getVehicleImages(item.id, item.listing_type === 'sale' ? 'sale' : 'rent').then((images) => setExistingImages(images ?? [])).catch((error) => setMessage(error instanceof Error ? error.message : 'تعذر تحميل صور السيارة.')).finally(() => setImagesLoading(false));
+    }
   }
 
   function handleImageAdd(evt: React.ChangeEvent<HTMLInputElement>) {
@@ -201,6 +207,10 @@ export function VehicleManager() {
 
   function removeImage(idx: number) {
     setPendingImages((p) => p.filter((_, i) => i !== idx));
+  }
+
+  function markExistingImageForRemoval(imageId: string) {
+    setPendingDeleteImageIds((previous) => previous.includes(imageId) ? previous : [...previous, imageId]);
   }
 
   async function submitForm(evt: React.FormEvent<HTMLFormElement>) {
@@ -275,11 +285,12 @@ export function VehicleManager() {
       };
 
       const safePayload = payload;
-      await saveVehicleAction(safePayload, editing?.id ?? null, uploadedPaths);
+      await saveVehicleAction(safePayload, editing?.id ?? null, uploadedPaths, pendingDeleteImageIds);
       setMessage(editing ? 'تم التحديث بنجاح' : 'تمت الإضافة بنجاح');
 
       setFormOpen(false);
       setPendingImages([]);
+      setPendingDeleteImageIds([]);
       await load();
     } catch (e) {
       setMessage(e instanceof Error && !e.message.includes('supabase') ? e.message : 'تعذر حفظ السيارة. يرجى مراجعة البيانات والمحاولة مرة أخرى.');
@@ -637,7 +648,11 @@ export function VehicleManager() {
                     ))}
                   </div>
                 )}
-                {editing && <div className="mt-3"><p className="text-sm font-bold">معرض الصور الحالي</p>{existingImages.length === 0 ? <p className="mt-2 text-xs text-[var(--muted)]">لا توجد صور في المعرض. ستظل الصورة الأساسية الحالية محفوظة.</p> : <div className="mt-2 grid grid-cols-3 gap-2">{existingImages.map((image) => <div key={image.id} className="relative"><img src={image.public_url} alt={`صورة السيارة ${editing.title}`} className="h-24 w-full rounded-lg object-cover"/><span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 text-[9px] text-white">{image.is_primary?'الصورة الأساسية':''}</span></div>)}</div>}</div>}
+                {editing && <div className="mt-3">
+                  <p className="text-sm font-bold">معرض الصور الحالي</p>
+                  {imagesLoading ? <p className="mt-2 text-xs text-[var(--muted)]">جارٍ تحميل الصور…</p> : existingImages.filter((image) => !pendingDeleteImageIds.includes(image.id)).length === 0 ? <p className="mt-2 text-xs text-[var(--muted)]">لا توجد صور محفوظة للسيارة حاليًا.</p> : <div className="mt-2 grid grid-cols-3 gap-2">{existingImages.filter((image) => !pendingDeleteImageIds.includes(image.id)).map((image) => <div key={image.id} className="relative"><img src={image.public_url} alt={`صورة السيارة ${editing.title}`} className="h-24 w-full rounded-lg object-cover"/><span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 text-[9px] text-white">{image.is_primary ? 'الصورة الأساسية' : ''}</span><button type="button" onClick={() => markExistingImageForRemoval(image.id)} aria-label="حذف هذه الصورة عند حفظ التعديل" className="absolute left-1 top-1 grid size-8 place-items-center rounded-full bg-black/70 text-white hover:bg-red-600"><Trash2 size={14}/></button></div>)}</div>}
+                  {pendingDeleteImageIds.length > 0 && <p className="mt-2 text-xs text-[var(--warning)]">سيتم حذف الصور المحددة عند حفظ التعديل. الإلغاء يبقي الصور كما هي.</p>}
+                </div>}
               </div>
 
               {/* Actions */}

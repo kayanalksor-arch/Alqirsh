@@ -30,6 +30,10 @@ async function authorized(permission: keyof typeof permissionField, type: 'rent'
 export async function saveVehicle(input: Record<string, unknown>, id: string | null, imagePaths: string[], removeImageIds: string[] = []) {
   const type = input.listing_type === 'sale' ? 'sale' : 'rent';
   const { db, user } = await authorized(id ? 'edit' : 'add', type);
+  if (imagePaths.length || removeImageIds.length) await authorized('images', type);
+  const { data: previousVehicle } = id
+    ? await db.from('vehicle_listings').select('image_url').eq('id', id).maybeSingle()
+    : { data: null };
   const fields={...input}; delete fields.image_url;
   const payload = { ...fields, ...(imagePaths[0] ? { image_url: db.storage.from('listing-images').getPublicUrl(imagePaths[0]).data.publicUrl } : {}), ...(id ? {} : { created_by: user.id }) };
   const result = id
@@ -37,17 +41,39 @@ export async function saveVehicle(input: Record<string, unknown>, id: string | n
     : await db.from('vehicle_listings').insert(payload).select('id').single();
   if (result.error || !result.data) throw new Error(result.error?.message ?? 'تعذر حفظ السيارة.');
   const vehicleId = result.data.id;
+  let removedImageUrls: string[] = [];
   if (removeImageIds.length) {
-    const { data: removed, error } = await db.from('vehicle_images').delete().eq('vehicle_id', vehicleId).in('id', removeImageIds).select('storage_path');
+    const { data: removed, error } = await db.from('vehicle_images').delete().eq('vehicle_id', vehicleId).in('id', removeImageIds).select('storage_path,public_url');
     if (error) throw new Error(error.message);
+    removedImageUrls = (removed ?? []).map((row) => row.public_url);
     if (removed?.length) { const { error: storageError } = await db.storage.from('listing-images').remove(removed.map((row) => row.storage_path)); if (storageError) throw new Error(storageError.message); }
   }
+  const { data: existingGallery, error: existingGalleryError } = await db.from('vehicle_images')
+    .select('sort_order').eq('vehicle_id', vehicleId).order('sort_order', { ascending: false }).limit(1);
+  if (existingGalleryError) throw new Error(existingGalleryError.message);
+  const nextSortOrder = (existingGallery?.[0]?.sort_order ?? -1) + 1;
   for (const [index, path] of imagePaths.entries()) {
     const url = db.storage.from('listing-images').getPublicUrl(path).data.publicUrl;
-    const { error } = await db.from('vehicle_images').insert({ vehicle_id: vehicleId, storage_path: path, public_url: url, sort_order: index, is_primary: index === 0 });
+    const { error } = await db.from('vehicle_images').insert({ vehicle_id: vehicleId, storage_path: path, public_url: url, sort_order: nextSortOrder + index, is_primary: nextSortOrder + index === 0 });
     if (error) {
       await db.storage.from('listing-images').remove(imagePaths);
       throw new Error(error.message);
+    }
+  }
+  if (imagePaths.length || removeImageIds.length) {
+    const { data: gallery, error: galleryError } = await db.from('vehicle_images')
+      .select('id,public_url,is_primary,sort_order').eq('vehicle_id', vehicleId).order('sort_order');
+    if (galleryError) throw new Error(galleryError.message);
+    const primary = gallery?.find((image) => image.is_primary) ?? gallery?.[0] ?? null;
+    if (gallery?.length && primary) {
+      const { error: resetError } = await db.from('vehicle_images').update({ is_primary: false }).eq('vehicle_id', vehicleId);
+      if (resetError) throw new Error(resetError.message);
+      const { error: primaryError } = await db.from('vehicle_images').update({ is_primary: true }).eq('id', primary.id).eq('vehicle_id', vehicleId);
+      if (primaryError) throw new Error(primaryError.message);
+    }
+    if (primary || removedImageUrls.includes(previousVehicle?.image_url ?? '')) {
+      const { error: urlError } = await db.from('vehicle_listings').update({ image_url: primary?.public_url ?? null }).eq('id', vehicleId);
+      if (urlError) throw new Error(urlError.message);
     }
   }
   revalidatePath('/dashboard/cars'); revalidatePath('/cars');
@@ -72,8 +98,8 @@ export async function removeVehicleImage(vehicleId: string, imageId: string) {
   revalidatePath('/cars');
 }
 
-export async function getVehicleImages(vehicleId: string) {
-  const { db } = await authorized('edit');
+export async function getVehicleImages(vehicleId: string, type: 'rent'|'sale' = 'rent') {
+  const { db } = await authorized('edit', type);
   const { data, error } = await db.from('vehicle_images').select('id,storage_path,public_url,is_primary,sort_order').eq('vehicle_id', vehicleId).order('sort_order');
   if (error) throw new Error(error.message);
   return data;
