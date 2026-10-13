@@ -30,9 +30,12 @@ export function ManagedEntityManager({ config }: { config: Config }) {
 
   const load = useCallback(async () => {
     const { data, error } = await createClient().from(config.table).select('*').order('created_at', { ascending: false });
-    if (error) setMsg(error.message);
+    if (error) {
+      console.error(`تعذر تحميل سجلات ${config.title}.`, error);
+      setMsg('تعذر تحميل البيانات. يُرجى المحاولة مرة أخرى.');
+    }
     else setRows((data ?? []) as Row[]);
-  }, [config.table]);
+  }, [config.table, config.title]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => { void load(); }, 0);

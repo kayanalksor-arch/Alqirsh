@@ -3,10 +3,10 @@ import Link from 'next/link';
 import { SocialLinks } from '@/components/social-links';
 
 const groups = [
-  { title: 'استكشف', links: [['/', 'الرئيسية'], ['/properties/sale', 'بيع العقارات'], ['/properties/rent', 'إيجار العقارات'], ['/cars/sale', 'بيع السيارات'], ['/cars/rent', 'إيجار السيارات']] },
+  { title: 'استكشف', links: [['/', 'الرئيسية'], ['/properties/sale', 'عقارات للبيع'], ['/properties/rent', 'عقارات للإيجار'], ['/cars/sale', 'سيارات للبيع'], ['/cars/rent', 'سيارات للإيجار']] },
   { title: 'عن القِرش', links: [['/about', 'من نحن'], ['/contact', 'تواصل معنا'], ['/faq', 'الأسئلة الشائعة']] },
-  { title: 'السياسات', links: [['/privacy-policy', 'سياسة الخصوصية'], ['/terms', 'الشروط والأحكام'], ['/cookie-policy', 'ملفات تعريف الارتباط'], ['/listing-policy', 'سياسة نشر العروض'], ['/accessibility', 'إمكانية الوصول']] },
-  { title: 'الإبلاغ والمساعدة', links: [['/report-issue', 'الإبلاغ عن مشكلة'], ['/faq', 'الأسئلة الشائعة']] },
+  { title: 'السياسات', links: [['/privacy-policy', 'سياسة الخصوصية'], ['/terms', 'الشروط والأحكام'], ['/cookie-policy', 'سياسة ملفات تعريف الارتباط'], ['/listing-policy', 'سياسة نشر العروض'], ['/accessibility', 'إمكانية الوصول']] },
+  { title: 'المساعدة', links: [['/report-issue', 'الإبلاغ عن مشكلة'], ['/faq', 'الأسئلة الشائعة']] },
 ] as const;
 
 export function PublicFooter() {

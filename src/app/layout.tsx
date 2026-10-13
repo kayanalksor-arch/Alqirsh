@@ -5,9 +5,9 @@ import { PwaRegister } from '@/components/pwa-register';
 export const metadata: Metadata = {
   metadataBase: new URL('https://alqirsh.online'),
   title: { default: 'القِرش | عقارات وسيارات في مصر', template: '%s | القِرش' },
-  description: 'منصة القِرش للعقارات والسيارات للبيع والإيجار.',
+  description: 'منصة القِرش للعقارات والسيارات للبيع والإيجار في مصر.',
   keywords: ['عقارات', 'سيارات', 'بيع', 'إيجار', 'القِرش'],
-  openGraph: { type: 'website', locale: 'ar_EG', siteName: 'القِرش', title: 'القِرش | عقارات وسيارات في مصر', description: 'منصة القِرش للعقارات والسيارات للبيع والإيجار.' },
+  openGraph: { type: 'website', locale: 'ar_EG', siteName: 'القِرش', title: 'القِرش | عقارات وسيارات في مصر', description: 'منصة القِرش للعقارات والسيارات للبيع والإيجار في مصر.' },
   twitter: { card: 'summary_large_image' },
   manifest: '/manifest.webmanifest',
   applicationName: 'القِرش',
@@ -18,18 +18,10 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: '/brand/alqirsh-icon-192.png', type: 'image/png', sizes: '192x192' }],
   },
-  appleWebApp: {
-    capable: true,
-    title: 'القِرش',
-    statusBarStyle: 'default',
-  },
+  appleWebApp: { capable: true, title: 'القِرش', statusBarStyle: 'default' },
 };
 
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  viewportFit: 'cover',
-};
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
 const themeScript = `(() => { try { const theme = localStorage.getItem('alqirsh-theme') || 'system'; const dark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches); document.documentElement.classList.toggle('dark', dark); } catch {} })();`;
 

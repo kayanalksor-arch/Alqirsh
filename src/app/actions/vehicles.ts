@@ -39,7 +39,10 @@ export async function saveVehicle(input: Record<string, unknown>, id: string | n
   const result = id
     ? await db.from('vehicle_listings').update(payload).eq('id', id).select('id').maybeSingle()
     : await db.from('vehicle_listings').insert(payload).select('id').single();
-  if (result.error || !result.data) throw new Error(result.error?.message ?? 'تعذر حفظ السيارة.');
+  if (result.error || !result.data) {
+    console.error('تعذر حفظ السيارة.', result.error);
+    throw new Error('تعذر حفظ السيارة. يُرجى مراجعة البيانات والمحاولة مرة أخرى.');
+  }
   const vehicleId = result.data.id;
   let removedImageUrls: string[] = [];
   if (removeImageIds.length) {
@@ -108,7 +111,12 @@ export async function getVehicleImages(vehicleId: string, type: 'rent'|'sale' = 
 export async function createVehicleBooking(input: { vehicleId: string; customerName: string; customerPhone: string; startsAt: string; endsAt: string; deposit: number; notes: string }) {
   const { db } = await authorized('booking_create');
   const { data, error } = await db.rpc('create_vehicle_booking', { p_vehicle_id: input.vehicleId, p_customer_name: input.customerName, p_customer_phone: input.customerPhone, p_starts_at: input.startsAt, p_ends_at: input.endsAt, p_deposit: input.deposit, p_notes: input.notes });
-  if (error) throw new Error(error.code === '23P01' ? 'هذه السيارة محجوزة في الفترة المحددة.' : error.message.includes('NOT_AUTHORIZED') ? 'ليست لديك صلاحية إنشاء الحجوزات.' : error.message);
+  if (error) {
+    if (error.code === '23P01') throw new Error('السيارة محجوزة في الفترة المحددة.');
+    if (error.message.includes('NOT_AUTHORIZED')) throw new Error('ليست لديك صلاحية إنشاء الحجوزات.');
+    console.error('تعذر إنشاء حجز السيارة.', error);
+    throw new Error('تعذر إنشاء الحجز. يُرجى المحاولة مرة أخرى.');
+  }
   revalidatePath('/dashboard/cars'); revalidatePath('/cars');
   return data;
 }
