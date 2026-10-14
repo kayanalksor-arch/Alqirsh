@@ -28,12 +28,41 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Africa/Cairo' }).format(date);
 }
 
+function translatedDescription(row: ActivityRow) {
+  const original = row.description?.trim() ?? '';
+  if (/[\u0600-\u06FF]/.test(original)) return original;
+
+  if (row.section === 'users') {
+    if (row.action === 'create' || original === 'User created') return 'تم إنشاء المستخدم وإضافته إلى النظام.';
+    if (row.action === 'update' || original.includes('role or status')) return 'تم تعديل بيانات المستخدم أو دوره أو حالة حسابه.';
+    if (row.action === 'delete') return 'تم حذف حساب المستخدم.';
+    if (row.action === 'deactivate') return 'تم إيقاف حساب المستخدم.';
+  }
+  if (row.section === 'permissions' || original.includes('permissions changed')) return 'تم تحديث صلاحيات المستخدم.';
+  if (row.section === 'settings' || original.includes('Platform settings')) return 'تم تعديل إعدادات المنصة.';
+  if (row.section === 'bookings' || original.startsWith('Booking ')) {
+    const operation = row.action === 'create' ? 'إنشاء حجز' : row.action === 'cancel' ? 'إلغاء حجز' : 'تعديل حجز';
+    return `تم ${operation} سيارة.`;
+  }
+  if (row.section === 'cars' || original.startsWith('Vehicle ') || original.includes('Listing media')) {
+    const operation = actionLabels[row.action] ?? 'تعديل';
+    return `تم ${operation} بيانات السيارة${original.includes('media') ? ' أو صورها' : ''}.`;
+  }
+  if (row.section.startsWith('properties') || original.startsWith('Property listing') || original.includes('Internal property management')) {
+    const section = sectionLabels[row.section] ?? 'العقار';
+    const operation = actionLabels[row.action] ?? (row.action === 'status' ? 'تغيير الحالة' : 'تعديل');
+    return `تم ${operation} في قسم ${section}.`;
+  }
+  if (original) return 'تم تسجيل حدث في النظام.';
+  return `تم تسجيل ${actionLabels[row.action] ?? 'عملية'} في قسم ${sectionLabels[row.section] ?? 'آخر'}.`;
+}
+
 function recordDetails(row: ActivityRow) {
   const pairs: [string, unknown][] = [
     ['المستخدم المنفّذ', row.actor_name], ['البريد الإلكتروني', row.actor_email],
     ['العملية', actionLabels[row.action] ?? 'حدث في النظام'], ['القسم', sectionLabels[row.section] ?? 'قسم آخر'],
     ['العنصر', row.entity_label || row.entity_id], ['وقت التنفيذ', formatDate(row.created_at)],
-    ['النتيجة', outcomeLabels[row.outcome] ?? 'غير متاحة'], ['الوصف المسجل', row.description],
+    ['النتيجة', outcomeLabels[row.outcome] ?? 'غير متاحة'], ['الوصف المسجل', translatedDescription(row)],
     ['معرّف المستخدم', row.actor_id], ['معرّف العنصر', row.entity_id],
   ];
   return pairs.filter(([, value]) => value !== null && value !== undefined && value !== '');
@@ -120,7 +149,7 @@ export function ActivityLogManager() {
             <td className="whitespace-nowrap px-3 py-3">{sectionLabels[row.section] ?? 'قسم آخر'}</td>
             <td className="whitespace-nowrap px-3 py-3">{actionLabels[row.action] ?? 'حدث في النظام'}</td>
             <td className="max-w-40 px-3 py-3"><span className="block truncate">{row.entity_label || 'غير متاح'}</span></td>
-            <td className="max-w-64 px-3 py-3"><span className="block truncate" title={row.description}>{row.description || 'لا يوجد وصف مسجل'}</span></td>
+            <td className="max-w-64 px-3 py-3"><span className="block truncate" title={translatedDescription(row)}>{translatedDescription(row)}</span></td>
             <td className="px-3 py-3"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${row.outcome === 'success' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200' : row.outcome === 'denied' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200' : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200'}`}>{outcomeLabels[row.outcome] ?? 'غير متاحة'}</span></td>
             <td className="px-3 py-3"><button type="button" onClick={() => setSelected(row)} className="whitespace-nowrap rounded-lg px-2.5 py-1.5 font-bold text-[var(--brand)] hover:bg-[var(--canvas)]" aria-label={`عرض تفاصيل ${actionLabels[row.action] ?? 'الحدث'} ${row.entity_label ?? ''}`}>التفاصيل</button></td>
           </tr>)}</tbody>
