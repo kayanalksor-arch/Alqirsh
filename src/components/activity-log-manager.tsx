@@ -12,15 +12,24 @@ const sectionLabels: Record<string, string> = {
   users: 'المستخدمون', permissions: 'الصلاحيات', properties: 'العقارات',
   'properties.sale': 'عقارات البيع', 'properties.rent': 'عقارات الإيجار',
   'properties.management': 'إدارة الأملاك', cars: 'السيارات', bookings: 'الحجوزات', settings: 'الإعدادات',
+  requests: 'طلبات العملاء', activity_logs: 'سجل التطبيق',
 };
 const actionLabels: Record<string, string> = {
   create: 'إضافة', user_created: 'إضافة مستخدم', update: 'تعديل', user_updated: 'تعديل مستخدم',
   delete: 'حذف', user_deleted: 'حذف مستخدم', archive: 'أرشفة', deactivate: 'تعطيل', activate: 'تفعيل',
   cancel: 'إلغاء', status_change: 'تغيير الحالة', permission_update: 'تعديل الصلاحيات',
   image_add: 'إضافة صورة', image_update: 'تعديل صورة', image_delete: 'حذف صورة',
+  status: 'تغيير الحالة', login: 'تسجيل الدخول', logout: 'تسجيل الخروج',
 };
-const sectionOptions = ['users', 'permissions', 'properties', 'properties.sale', 'properties.rent', 'properties.management', 'cars', 'bookings', 'settings'];
+const sectionOptions = ['users', 'permissions', 'properties', 'properties.sale', 'properties.rent', 'properties.management', 'cars', 'bookings', 'requests', 'settings'];
 const outcomeLabels: Record<string, string> = { success: 'ناجحة', failure: 'فاشلة', denied: 'مرفوضة' };
+const detailLabels: Record<string, string> = {
+  status: 'الحالة', role_changed: 'تغيّر الدور', status_changed: 'تغيّرت حالة الحساب',
+};
+const statusLabels: Record<string, string> = {
+  new: 'جديد', pending: 'قيد الانتظار', pending_review: 'قيد المراجعة', in_progress: 'قيد التنفيذ',
+  completed: 'مكتمل', cancelled: 'ملغى', active: 'نشط', inactive: 'غير نشط',
+};
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -66,6 +75,13 @@ function recordDetails(row: ActivityRow) {
     ['معرّف المستخدم', row.actor_id], ['معرّف العنصر', row.entity_id],
   ];
   return pairs.filter(([, value]) => value !== null && value !== undefined && value !== '');
+}
+
+function detailValue(key: string, value: unknown) {
+  if (typeof value === 'boolean') return value ? 'نعم' : 'لا';
+  if (value === null || value === undefined || value === '') return 'غير متاح';
+  if (key === 'status' && typeof value === 'string') return statusLabels[value] ?? 'حالة أخرى';
+  return String(value);
 }
 
 export function ActivityLogManager() {
@@ -145,10 +161,10 @@ export function ActivityLogManager() {
           <thead><tr className="border-b border-[var(--line)] bg-[var(--canvas)]/60 text-xs text-[var(--muted)]">{['التاريخ والوقت', 'المستخدم', 'القسم', 'العملية', 'العنصر', 'الوصف', 'النتيجة', ''].map((label, index) => <th key={`${label}-${index}`} scope="col" className="whitespace-nowrap px-3 py-3 font-bold">{label}</th>)}</tr></thead>
           <tbody>{result?.rows.map(row => <tr key={row.id} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--canvas)]/50">
             <td className="whitespace-nowrap px-3 py-3 text-xs tabular-nums">{formatDate(row.created_at)}</td>
-            <td className="max-w-44 px-3 py-3"><span className="block truncate font-semibold">{row.actor_name || 'مستخدم غير متاح'}</span>{row.actor_email && <small dir="ltr" className="mt-0.5 block truncate text-right text-xs text-[var(--muted)]">{row.actor_email}</small>}</td>
+            <td className="max-w-44 px-3 py-3"><span dir="auto" className="block truncate font-semibold">{row.actor_name || 'مستخدم غير متاح'}</span>{row.actor_email && <small dir="ltr" className="mt-0.5 block truncate text-right text-xs text-[var(--muted)]">{row.actor_email}</small>}</td>
             <td className="whitespace-nowrap px-3 py-3">{sectionLabels[row.section] ?? 'قسم آخر'}</td>
             <td className="whitespace-nowrap px-3 py-3">{actionLabels[row.action] ?? 'حدث في النظام'}</td>
-            <td className="max-w-40 px-3 py-3"><span className="block truncate">{row.entity_label || 'غير متاح'}</span></td>
+            <td className="max-w-40 px-3 py-3"><span dir="auto" className="block truncate">{row.entity_label || 'غير متاح'}</span></td>
             <td className="max-w-64 px-3 py-3"><span className="block truncate" title={translatedDescription(row)}>{translatedDescription(row)}</span></td>
             <td className="px-3 py-3"><span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${row.outcome === 'success' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200' : row.outcome === 'denied' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200' : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200'}`}>{outcomeLabels[row.outcome] ?? 'غير متاحة'}</span></td>
             <td className="px-3 py-3"><button type="button" onClick={() => setSelected(row)} className="whitespace-nowrap rounded-lg px-2.5 py-1.5 font-bold text-[var(--brand)] hover:bg-[var(--canvas)]" aria-label={`عرض تفاصيل ${actionLabels[row.action] ?? 'الحدث'} ${row.entity_label ?? ''}`}>التفاصيل</button></td>
@@ -171,7 +187,7 @@ export function ActivityLogManager() {
         <header className="flex items-start justify-between gap-3 border-b border-[var(--line)] p-5"><div><p className="text-xs font-bold text-[var(--brand)]">تفاصيل سجل النشاط</p><h2 id="activity-details-title" className="mt-1 text-xl font-black">{actionLabels[selected.action] ?? 'حدث في النظام'} · {sectionLabels[selected.section] ?? 'قسم آخر'}</h2><p className="mt-1 text-sm text-[var(--muted)]">{formatDate(selected.created_at)}</p></div><button type="button" onClick={() => setSelected(null)} aria-label="إغلاق التفاصيل" className="grid size-10 shrink-0 place-items-center rounded-xl border border-[var(--line)] hover:bg-[var(--canvas)]"><X size={19} /></button></header>
         <div className="max-h-[70dvh] space-y-4 overflow-y-auto p-5">
           <dl className="grid gap-3 sm:grid-cols-2">{recordDetails(selected).map(([label, value]) => <div key={label} className="min-w-0 rounded-xl bg-[var(--canvas)] p-3"><dt className="text-xs text-[var(--muted)]">{label}</dt><dd dir={label.includes('معرّف') || label === 'البريد الإلكتروني' ? 'ltr' : undefined} className={`mt-1 break-words text-sm font-semibold ${label.includes('معرّف') || label === 'البريد الإلكتروني' ? 'text-left' : ''}`}>{String(value)}</dd></div>)}</dl>
-          {Object.keys(selected.details ?? {}).length > 0 && <section><h3 className="mb-2 text-sm font-black">تفاصيل إضافية مسجلة</h3><pre dir="ltr" className="max-h-64 overflow-auto rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-4 text-left text-xs leading-5">{JSON.stringify(selected.details, null, 2)}</pre></section>}
+          {Object.keys(selected.details ?? {}).length > 0 && <section><h3 className="mb-2 text-sm font-black">تفاصيل إضافية مسجلة</h3><dl className="grid gap-2 sm:grid-cols-2">{Object.entries(selected.details ?? {}).map(([key, value]) => <div key={key} className="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-3"><dt className="text-xs text-[var(--muted)]">{detailLabels[key] ?? 'تفصيل إضافي'}</dt><dd dir={key.endsWith('_id') ? 'ltr' : 'auto'} className={`mt-1 break-words text-sm font-semibold ${key.endsWith('_id') ? 'text-left' : ''}`}>{detailValue(key, value)}</dd></div>)}</dl></section>}
           <p className="rounded-xl border border-amber-300/60 bg-amber-50/70 p-3 text-xs leading-5 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">تُعرض هنا البيانات المسجلة لهذا الحدث فقط. لا تُعرض كلمات المرور أو رموز الجلسات أو مفاتيح الوصول.</p>
         </div>
         <footer className="flex justify-end border-t border-[var(--line)] p-4"><button type="button" onClick={() => setSelected(null)} className="min-h-10 rounded-xl bg-[var(--brand)] px-5 py-2 font-bold text-white">إغلاق</button></footer>
