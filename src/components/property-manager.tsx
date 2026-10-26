@@ -5,7 +5,10 @@ import { Download, Edit3, ImagePlus, LoaderCircle, Plus, Search, Trash2, X } fro
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { addBrandWatermark } from '@/lib/image-watermark';
-import { formatEgp, listingStatusClass, listingStatusLabel, listingStatuses } from '@/lib/listings';
+import { useLanguage } from '@/components/language-provider';
+import { formatEgpLocalized, listingStatusClass, listingStatusLabel, listingStatuses } from '@/lib/listings';
+import { translateEnum } from '@/lib/i18n';
+import { LocalizedUserContent } from '@/components/localized-user-content';
 
 type Property = {
   id: string;
@@ -75,6 +78,7 @@ async function ensureManagerProfile(db: ReturnType<typeof createClient>) {
 }
 
 export function PropertyManager() {
+  const { locale } = useLanguage();
   const [properties, setProperties] = useState<Property[]>([]);
   const [images, setImages] = useState<Record<string, PropertyImage[]>>({});
   const [query, setQuery] = useState('');
@@ -476,14 +480,14 @@ export function PropertyManager() {
                           </div>
                         )}
                       </td>
-                      <td className="p-3">{p.title}</td>
+                      <td className="p-3"><LocalizedUserContent value={p.title} /></td>
                       <td className="p-3">
                         <span className="rounded bg-[var(--canvas)] px-2 py-1 text-[11px] font-bold">
                           {p.kind === 'sale' ? 'بيع' : 'إيجار'}
                         </span>
                       </td>
-                      <td className="p-3">{formatEgp(p.price)}</td>
-                      <td className="p-3 text-[var(--muted)]">{p.location || '—'}</td>
+                      <td className="p-3">{formatEgpLocalized(p.price, locale)}</td>
+                      <td className="p-3 text-[var(--muted)]"><LocalizedUserContent value={p.location || '—'} /></td>
                       <td className="p-3">
                         <span className={`status-badge ${listingStatusClass(p.status)}`}>{listingStatusLabel(p.status, p.kind === 'rental' ? 'rent' : 'sale')}</span>
                       </td>
@@ -742,7 +746,7 @@ export function PropertyManager() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-[var(--surface)] p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-black">{viewing.title}</h2>
+              <h2 className="text-xl font-black"><LocalizedUserContent value={viewing.title} /></h2>
               <button
                 onClick={() => setViewing(null)}
                 className="rounded-lg hover:bg-[var(--canvas)]"
@@ -777,17 +781,17 @@ export function PropertyManager() {
                 </div>
                 <div>
                   <p className="text-[var(--muted)]">نوع العقار</p>
-                  <p className="font-bold">{viewing.property_type || '—'}</p>
+                  <p className="font-bold">{viewing.property_type ? translateEnum(viewing.property_type, locale) : '—'}</p>
                 </div>
                 <div>
                   <p className="text-[var(--muted)]">السعر</p>
                   <p className="font-bold">
-                    {formatEgp(viewing.price)}
+                    {formatEgpLocalized(viewing.price, locale)}
                   </p>
                 </div>
                 <div>
                   <p className="text-[var(--muted)]">المنطقة</p>
-                  <p className="font-bold">{viewing.location || '—'}</p>
+                  <p className="font-bold"><LocalizedUserContent value={viewing.location || '—'} /></p>
                 </div>
                 <div>
                   <p className="text-[var(--muted)]">المساحة</p>
@@ -801,7 +805,7 @@ export function PropertyManager() {
               {viewing.description && (
                 <div>
                   <p className="text-[var(--muted)]">الوصف</p>
-                  <p className="font-bold">{viewing.description}</p>
+                  <p className="font-bold"><LocalizedUserContent value={viewing.description} /></p>
                 </div>
               )}
             </div>

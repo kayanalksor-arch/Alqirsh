@@ -8,6 +8,8 @@ import { Activity, Building2, CarFront, ClipboardList, LayoutDashboard, Menu, Se
 import { createClient } from '@/lib/supabase/client';
 import { LogoutButton } from '@/components/logout-button';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { LanguageSwitcher } from '@/components/language-switcher';
+import { useLanguage } from '@/components/language-provider';
 
 const links = [
   ['/dashboard', 'لوحة التحكم', LayoutDashboard],
@@ -22,6 +24,7 @@ const links = [
 ] as const;
 
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
+  const { t } = useLanguage();
   const pathname = usePathname();
   const [visible,setVisible]=useState<string[]|null>(null);
   useEffect(()=>{let live=true;void(async()=>{const db=createClient();const {data:{user}}=await db.auth.getUser();if(!user)return;const {data:profile}=await db.from('profiles').select('role').eq('id',user.id).maybeSingle();if(profile?.role==='admin'){if(live)setVisible(links.map(([href])=>String(href)).concat('/dashboard/activity-log'));return;}const {data:p}=await db.from('section_permissions').select('*').eq('user_id',user.id).maybeSingle();const allowed=['/dashboard/profile'];if(p?.properties_sale_view||p?.properties_rent_view)allowed.push('/dashboard/properties');if(p?.properties_management_view)allowed.push('/dashboard/property-management');if(p?.cars_sale_view||p?.cars_rent_view)allowed.push('/dashboard/cars');if(p?.properties_requests_view||p?.properties_requests_manage)allowed.push('/dashboard/requests');if(p?.users_permissions_manage)allowed.push('/dashboard/users');if(p?.activity_logs_view)allowed.push('/dashboard/activity-log');if(live)setVisible(allowed);})();return()=>{live=false;};},[]);
@@ -30,21 +33,24 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   return <nav className="mt-6 space-y-1" aria-label="التنقل داخل لوحة التحكم">{navLinks.filter(([href])=>visible?.includes(href)).map(([href, label, Icon]) => {
     const active = href === '/dashboard' ? pathname === href : pathname.startsWith(href);
     const className = active ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200' : 'text-[var(--muted)] hover:bg-emerald-50 hover:text-emerald-900 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-100';
-    return <Link key={href} href={href} onClick={onNavigate} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${className}`}><Icon size={18} aria-hidden="true" />{label}</Link>;
+    return <Link key={href} href={href} onClick={onNavigate} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${className}`}><Icon size={18} aria-hidden="true" />{t(label)}</Link>;
   })}</nav>;
 }
 
 function Brand() {
-  return <Link href="/dashboard" className="flex items-center gap-3 border-b border-[var(--line)] pb-6"><Image src="/brand/alqirsh-icon-192.png" alt="شعار القِرش" width={44} height={44} className="size-11 rounded-xl object-contain shadow-sm" priority /><span><b className="block">القِرش</b><small className="text-[var(--muted)]">إدارة العقارات</small></span></Link>;
+  const { t } = useLanguage();
+  return <Link href="/dashboard" className="flex items-center gap-3 border-b border-[var(--line)] pb-6"><Image src="/brand/alqirsh-icon-192.png" alt="شعار القِرش" width={44} height={44} className="size-11 rounded-xl object-contain shadow-sm" priority /><span><b className="block">{t('القِرش')}</b><small className="text-[var(--muted)]">{t('إدارة الأملاك')}</small></span></Link>;
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  return <><Brand /><Navigation onNavigate={onNavigate} /><div className="mt-8 space-y-2 border-t border-[var(--line)] pt-5"><Link href="/" onClick={onNavigate} className="flex min-h-11 items-center justify-center rounded-xl border border-[var(--line)] px-3 py-3 text-sm font-semibold transition hover:bg-[var(--canvas)]">عرض الموقع</Link><LogoutButton /></div></>;
+  const { t } = useLanguage();
+  return <><Brand /><Navigation onNavigate={onNavigate} /><div className="mt-8 space-y-2 border-t border-[var(--line)] pt-5"><Link href="/" onClick={onNavigate} className="flex min-h-11 items-center justify-center rounded-xl border border-[var(--line)] px-3 py-3 text-sm font-semibold transition hover:bg-[var(--canvas)]">{t('عرض الموقع')}</Link><LogoutButton /></div></>;
 }
 
 export function DashboardShell({ children }: { children: ReactNode }) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   useEffect(() => { document.body.style.overflow = open ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [open]);
 
-  return <div className="app-shell flex min-h-screen"><aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-l border-[var(--line)] bg-[var(--surface)] p-5 lg:block"><SidebarContent /></aside><div className="relative min-w-0 flex-1"><header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--line)] bg-[var(--surface)] px-3 sm:px-4 lg:absolute lg:left-6 lg:top-5 lg:z-30 lg:h-auto lg:border-0 lg:bg-transparent lg:p-0"><button type="button" aria-label="فتح القائمة" onClick={() => setOpen(true)} className="grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--line)] lg:hidden"><Menu size={20} /></button><b className="min-w-0 truncate px-2 lg:hidden">القِرش</b><div className="mr-auto shrink-0"><ThemeToggle /></div></header><section className="min-w-0 flex-1">{children}</section></div>{open && <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="قائمة لوحة التحكم"><button type="button" aria-label="إغلاق القائمة" onClick={() => setOpen(false)} className="absolute inset-0 bg-black/45" /><aside className="relative mr-auto h-full w-[min(19rem,88vw)] overflow-y-auto bg-[var(--surface)] p-5 shadow-2xl"><button type="button" aria-label="إغلاق القائمة" onClick={() => setOpen(false)} className="absolute left-4 top-4 grid size-11 place-items-center rounded-xl border border-[var(--line)]"><X size={20} /></button><SidebarContent onNavigate={() => setOpen(false)} /></aside></div>}</div>;
+  return <div className="app-shell flex min-h-screen"><aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-l border-[var(--line)] bg-[var(--surface)] p-5 lg:block"><SidebarContent /></aside><div className="relative min-w-0 flex-1"><header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--line)] bg-[var(--surface)] px-3 sm:px-4 lg:absolute lg:left-6 lg:top-5 lg:z-30 lg:h-auto lg:border-0 lg:bg-transparent lg:p-0"><button type="button" aria-label={t('فتح القائمة')} onClick={() => setOpen(true)} className="grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--line)] lg:hidden"><Menu size={20} /></button><b className="min-w-0 truncate px-2 lg:hidden">{t('القِرش')}</b><div className="mr-auto flex shrink-0 items-center gap-2"><LanguageSwitcher /><ThemeToggle /></div></header><section className="min-w-0 flex-1">{children}</section></div>{open && <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label={t('قائمة لوحة التحكم')}><button type="button" aria-label={t('إغلاق القائمة')} onClick={() => setOpen(false)} className="absolute inset-0 bg-black/45" /><aside className="relative mr-auto h-full w-[min(19rem,88vw)] overflow-y-auto bg-[var(--surface)] p-5 shadow-2xl"><button type="button" onClick={() => setOpen(false)} aria-label={t('إغلاق القائمة')} className="absolute left-4 top-4 grid size-11 place-items-center rounded-xl border border-[var(--line)]"><X size={20} /></button><SidebarContent onNavigate={() => setOpen(false)} /></aside></div>}</div>;
 }

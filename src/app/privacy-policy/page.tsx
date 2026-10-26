@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { InfoList, PublicInfoPage } from '@/components/public-info-page';
+import { localizedMetadata } from '@/lib/metadata';
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata({ title: 'سياسة الخصوصية', description: 'تعرف على البيانات التي تعالجها منصة القِرش وأغراض استخدامها وحقوقك وطرق التواصل بشأن الخصوصية.', alternates: { canonical: '/privacy-policy' }, openGraph: { type: 'article', title: 'سياسة الخصوصية | القِرش' } });
+}
 
-export const metadata: Metadata = { title: 'سياسة الخصوصية', description: 'تعرف على البيانات التي تعالجها منصة القِرش وأغراض استخدامها وحقوقك وطرق التواصل بشأن الخصوصية.', alternates: { canonical: '/privacy-policy' }, openGraph: { type: 'article', title: 'سياسة الخصوصية | القِرش' } };
 
 export default function PrivacyPolicyPage() {
   return <PublicInfoPage eyebrow="السياسات" title="سياسة الخصوصية" intro="تشرح هذه الصفحة بصورة عامة أنواع البيانات التي قد تعالجها المنصة عند استخدام خدماتها، وكيفية التواصل لطلب المساعدة بشأنها. تختلف البيانات بحسب الوظيفة التي تستخدمها." updatedAt="11 أكتوبر 2026" sections={[

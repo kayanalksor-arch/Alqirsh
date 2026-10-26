@@ -1,8 +1,11 @@
 ﻿'use client';
 import { BedDouble, Download, MapPin, Maximize2, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { formatEgp, formatNumber } from '@/lib/listings';
+import { formatEgpLocalized, formatNumber } from '@/lib/listings';
 import { ListingImage } from '@/components/listing-image';
+import { useLanguage } from '@/components/language-provider';
+import { translateEnum } from '@/lib/i18n';
+import { LocalizedUserContent } from '@/components/localized-user-content';
 
 type Offer = {
   id: string;
@@ -26,6 +29,7 @@ const normalizeSearchText = (value: string) =>
     .trim();
 
 export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]; images: Record<string, string[]>; rental: boolean }) {
+  const { locale, t } = useLanguage();
   const [selected, setSelected] = useState<Offer | null>(null);
   const [active, setActive] = useState(0);
   const [fullImage, setFullImage] = useState<string | null>(null);
@@ -63,7 +67,7 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className="w-full bg-transparent outline-none"
-            placeholder="ابحث بالعنوان أو المنطقة أو النوع أو الوصف"
+            placeholder={t('ابحث بالعنوان أو المنطقة أو النوع أو الوصف')}
           />
         </label>
 
@@ -72,9 +76,9 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
           onChange={(event) => setPropertyType(event.target.value)}
           className="min-h-12 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 text-sm font-semibold"
         >
-          <option value="">كل الأنواع</option>
+          <option value="">{t('كل الأنواع')}</option>
           {propertyTypes.map((item) => (
-            <option key={item} value={item}>{item}</option>
+            <option key={item} value={item}>{translateEnum(item, locale)}</option>
           ))}
         </select>
 
@@ -83,16 +87,16 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
           onChange={(event) => setLocation(event.target.value)}
           className="min-h-12 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 text-sm font-semibold"
         >
-          <option value="">كل المناطق</option>
-          {locations.map((item) => <option key={item} value={item}>{item}</option>)}
+          <option value="">{t('كل المناطق')}</option>
+          {locations.map((item) => <option key={item} value={item}>{translateEnum(item, locale)}</option>)}
         </select>
       </section>
 
       {shown.length === 0 ? (
         <section className="panel mt-5 rounded-2xl p-10 text-center">
-          <h2 className="font-black">لا توجد نتائج مطابقة</h2>
+          <h2 className="font-black">{t('لا توجد نتائج مطابقة')}</h2>
           <button type="button" onClick={() => { setQuery(''); setLocation(''); setPropertyType(''); }} className="mt-4 text-sm font-bold text-[var(--brand)]">
-            مسح البحث والفلتر
+            {t('مسح البحث والفلتر')}
           </button>
         </section>
       ) : (
@@ -101,16 +105,17 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
             const photo = images[offer.id]?.[0];
             return (
               <button key={offer.id} type="button" onClick={() => open(offer)} className="panel overflow-hidden rounded-2xl text-right transition hover:-translate-y-1 hover:border-[var(--brand)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]">
-                <ListingImage src={photo} alt={offer.title} className="h-36 w-full object-cover sm:h-52" />
+                <ListingImage src={photo} alt={offer.title} sizes="(max-width: 639px) calc(50vw - 1.5rem), (max-width: 1279px) calc(50vw - 2rem), 26rem" className="h-36 w-full object-cover sm:h-52" />
                 <div className="p-3 sm:p-5">
-                  <p className="text-[10px] font-bold text-[var(--brand)] sm:text-xs">{offer.property_type ?? (rental ? 'عقار للإيجار' : 'عقار للبيع')}</p>
-                  <h2 className="mt-2 text-base font-black sm:text-xl">{offer.title}</h2>
-                  <p className="mt-2 text-base font-black text-[var(--brand)] sm:mt-3 sm:text-xl">{formatEgp(offer.price)}{rental ? ' شهرياً' : ''}</p>
-                  <p className="mt-2 flex items-center gap-1 text-[10px] text-[var(--muted)] sm:mt-3 sm:gap-2 sm:text-sm"><MapPin size={14} className="shrink-0 sm:size-4" />{offer.location ?? 'الموقع غير محدد'}</p>
-                  {offer.address && <p className="mt-2 text-[10px] text-[var(--muted)] sm:text-sm">{offer.address}</p>}
+                  <p className="text-[10px] font-bold text-[var(--brand)] sm:text-xs">{offer.property_type ? translateEnum(offer.property_type, locale) : t(rental ? 'عقار للإيجار' : 'عقار للبيع')}</p>
+                  <h2 className="mt-2 text-base font-black sm:text-xl"><LocalizedUserContent value={offer.title} /></h2>
+                  <p className="mt-2 line-clamp-3 text-xs leading-5 text-[var(--muted)]"><LocalizedUserContent value={offer.description} /></p>
+                  <p className="mt-2 text-base font-black text-[var(--brand)] sm:mt-3 sm:text-xl">{formatEgpLocalized(offer.price, locale)}{rental ? ` ${t('شهرياً')}` : ''}</p>
+                  <p className="mt-2 flex items-center gap-1 text-[10px] text-[var(--muted)] sm:mt-3 sm:gap-2 sm:text-sm"><MapPin size={14} className="shrink-0 sm:size-4" /><LocalizedUserContent value={offer.location ?? t('الموقع غير محدد')} /></p>
+                  {offer.address && <p className="mt-2 text-[10px] text-[var(--muted)] sm:text-sm"><LocalizedUserContent value={offer.address} /></p>}
                   <div className="mt-3 flex items-center justify-between gap-2 text-[10px] text-[var(--muted)] sm:mt-4 sm:text-sm">
-                    <span>المساحة: {formatNumber(offer.area)} م²</span>
-                    <span>{formatNumber(offer.bedrooms)} غرف</span>
+                    <span>{t('المساحة:')} {formatNumber(offer.area, locale)} {t('م²')}</span>
+                    <span>{formatNumber(offer.bedrooms, locale)} {t('غرف')}</span>
                   </div>
                 </div>
               </button>
@@ -130,7 +135,7 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
               <div className="grid gap-2 bg-[var(--canvas)] p-2 md:grid-cols-[1.2fr_.8fr]">
                 {images[selected.id].map((src, index) => (
                   <button key={src + index} type="button" onClick={() => setFullImage(src)} className={index === active ? 'block w-full cursor-zoom-in' : 'hidden'} aria-label="فتح الصورة بالحجم الكامل">
-                    <ListingImage src={src} alt={selected.title} className="h-80 w-full rounded-2xl object-cover" />
+                    <ListingImage src={src} alt={selected.title} sizes="(max-width: 767px) calc(100vw - 2rem), (max-width: 1023px) 55vw, 42rem" className="h-80 w-full rounded-2xl object-cover" />
                   </button>
                 ))}
 
@@ -138,28 +143,28 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
                   <div className="mt-2 flex gap-2 overflow-x-auto px-2 pb-2">
                     {images[selected.id].map((src, index) => (
                       <button key={src} type="button" onClick={() => setActive(index)} className={`h-16 w-16 overflow-hidden rounded-xl border ${index === active ? 'border-[var(--brand)]' : 'border-[var(--line)]'}`}>
-                        <ListingImage src={src} alt={`${selected.title} ${index + 1}`} className="h-full w-full object-cover" />
+                        <ListingImage src={src} alt={`${selected.title} ${index + 1}`} sizes="4rem" className="h-full w-full object-cover" />
                       </button>
                     ))}
                   </div>
                 )}
               </div>
             ) : (
-              <div className="h-80 bg-[var(--canvas)]"><ListingImage alt={selected.title} className="h-full w-full object-cover" /></div>
+              <div className="h-80 bg-[var(--canvas)]"><ListingImage alt={selected.title} sizes="(max-width: 767px) calc(100vw - 2rem), (max-width: 1023px) 55vw, 42rem" className="h-full w-full object-cover" /></div>
             )}
 
             <div className="p-6 md:p-8">
-              <p className="text-xs font-bold text-[var(--brand)]">{selected.property_type ?? (rental ? 'عقار للإيجار' : 'عقار للبيع')}</p>
-              <h2 className="mt-2 text-2xl font-black">{selected.title}</h2>
-              <p className="mt-3 text-2xl font-black text-[var(--brand)]">{formatNumber(selected.price)} ج.م{rental ? ' شهرياً' : ''}</p>
+              <p className="text-xs font-bold text-[var(--brand)]">{selected.property_type ? translateEnum(selected.property_type, locale) : t(rental ? 'عقار للإيجار' : 'عقار للبيع')}</p>
+              <h2 className="mt-2 text-2xl font-black"><LocalizedUserContent value={selected.title} /></h2>
+              <p className="mt-3 text-2xl font-black text-[var(--brand)]">{formatEgpLocalized(selected.price, locale)}{rental ? ` ${t('شهرياً')}` : ''}</p>
 
-              {selected.description && <p className="mt-5 leading-7 text-[var(--muted)]">{selected.description}</p>}
+              {selected.description && <p className="mt-5 whitespace-pre-wrap leading-7 text-[var(--muted)]"><LocalizedUserContent value={selected.description} /></p>}
 
               <div className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
-                <span className="flex gap-2"><MapPin size={17} />{selected.location ?? 'الموقع غير محدد'}{selected.address ? ` — ${selected.address}` : ''}</span>
-                <span className="flex gap-2"><Maximize2 size={17} />{formatNumber(selected.area)} م²</span>
-                <span className="flex gap-2"><BedDouble size={17} />{formatNumber(selected.bedrooms)} غرف نوم</span>
-                <span>الحمامات: {formatNumber(selected.bathrooms)}</span>
+                <span className="flex gap-2"><MapPin size={17} /><LocalizedUserContent value={selected.location ?? t('الموقع غير محدد')} />{selected.address ? <> — <LocalizedUserContent value={selected.address} /></> : null}</span>
+                <span className="flex gap-2"><Maximize2 size={17} />{formatNumber(selected.area, locale)} {t('م²')}</span>
+                <span className="flex gap-2"><BedDouble size={17} />{formatNumber(selected.bedrooms, locale)} {t('غرف نوم')}</span>
+                <span>{t('الحمامات:')} {formatNumber(selected.bathrooms, locale)}</span>
               </div>
             </div>
           </div>
@@ -171,7 +176,7 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
           <button type="button" onClick={() => setFullImage(null)} className="absolute right-4 top-4 grid size-11 place-items-center rounded-full bg-white/15 text-white" aria-label="إغلاق الصورة">
             <X size={20} />
           </button>
-          <ListingImage src={fullImage} alt="صورة العرض بالحجم الكامل" className="max-h-[82vh] max-w-full object-contain" />
+          <ListingImage src={fullImage} alt="صورة العرض بالحجم الكامل" sizes="(max-width: 767px) calc(100vw - 2rem), 90vw" className="max-h-[82vh] max-w-full object-contain" />
           <a href={fullImage} download className="absolute bottom-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-900">
             <Download size={17} /> تنزيل الصورة
           </a>

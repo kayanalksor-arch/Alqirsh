@@ -2,11 +2,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Building2, CarFront, Compass, ShieldCheck } from 'lucide-react';
 import { PublicInfoPage } from '@/components/public-info-page';
-
-export const metadata: Metadata = {
+import { localizedMetadata } from '@/lib/metadata';
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata({
   title: 'من نحن', description: 'تعرّف على منصة القِرش ورسالتها في جمع عروض العقارات والسيارات للبيع والإيجار في مكان واحد.',
   alternates: { canonical: '/about' }, openGraph: { type: 'website', title: 'من نحن | القِرش', description: 'تعرّف على منصة القِرش وخدماتها.' },
-};
+});
+}
+
 
 const values = [
   { icon: Building2, title: 'عروض العقارات', text: 'استكشف العقارات المتاحة للبيع أو الإيجار وتعرّف على تفاصيل كل عرض.' },

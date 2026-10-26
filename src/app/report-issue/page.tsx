@@ -3,8 +3,11 @@ import Link from 'next/link';
 import { AlertCircle, ArrowLeft, Phone } from 'lucide-react';
 import { PublicInfoPage } from '@/components/public-info-page';
 import { ContactCard } from '@/components/contact-card';
+import { localizedMetadata } from '@/lib/metadata';
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata({ title: 'الإبلاغ عن مشكلة', description: 'تعرف على طريقة التواصل مع القِرش للإبلاغ عن عرض غير صحيح أو مشكلة في الموقع أو طلب خصوصية.', alternates: { canonical: '/report-issue' }, openGraph: { type: 'website', title: 'الإبلاغ عن مشكلة | القِرش' } });
+}
 
-export const metadata: Metadata = { title: 'الإبلاغ عن مشكلة', description: 'تعرف على طريقة التواصل مع القِرش للإبلاغ عن عرض غير صحيح أو مشكلة في الموقع أو طلب خصوصية.', alternates: { canonical: '/report-issue' }, openGraph: { type: 'website', title: 'الإبلاغ عن مشكلة | القِرش' } };
 
 export default function ReportIssuePage() {
   return <PublicInfoPage eyebrow="المساعدة" title="الإبلاغ عن مشكلة" intro="يمكنك التواصل مع فريق القِرش للإبلاغ عن إعلان غير صحيح أو صورة مخالفة أو مشكلة في استخدام الموقع أو مسألة تتعلق بالخصوصية." sections={[

@@ -4,6 +4,7 @@
 import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
 import { Edit3, Eye, LoaderCircle, Plus, Search, Trash2, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { LocalizedUserContent } from '@/components/localized-user-content';
 
 type Partner = {
   id: string;
@@ -197,9 +198,9 @@ export function PartnersManager({ partners: initialPartners }: { partners: Partn
 
               <div className="flex-1">
                 {partner.category && <p className="text-[10px] font-bold text-[var(--brand)] sm:text-xs">{partner.category}</p>}
-                <h2 className="mt-2 text-lg font-black">{partner.name}</h2>
+                <h2 className="mt-2 text-lg font-black"><LocalizedUserContent value={partner.name} /></h2>
                 {partner.description && (
-                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--muted)]">{partner.description}</p>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--muted)]"><LocalizedUserContent value={partner.description} /></p>
                 )}
               </div>
 

@@ -4,8 +4,23 @@ import { PublicFooter } from '@/components/public-footer';
 import { CarsListingView } from '@/components/cars-listing-view';
 import { getPublicCars } from '@/lib/public-catalogue';
 import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/metadata';
+import { cookies } from 'next/headers';
+import { indexableListingStatuses } from '@/lib/listings';
+export async function generateMetadata(): Promise<Metadata> {
+  const [listings, cookieStore] = await Promise.all([getPublicCars('rent'), cookies()]);
+  const count = listings.filter((listing) => indexableListingStatuses.includes(listing.status as (typeof indexableListingStatuses)[number])).length;
+  const locale = cookieStore.get('alqirsh-language')?.value === 'en' ? 'en' : 'ar';
+  const metadata = count
+    ? locale === 'en'
+      ? { title: `Cars for Rent in Egypt (${count} listings)`, description: `Browse ${count} currently listed rental cars in Egypt and check each listing for its recorded rental rates and vehicle details.` }
+      : { title: `سيارات للإيجار في مصر (${count} عروض)`, description: `تصفح ${count} من السيارات المنشورة للإيجار في مصر، وراجع أسعار الإيجار وتفاصيل السيارة المسجلة في كل عرض.` }
+    : locale === 'en'
+      ? { title: 'Explore Cars for Rent', description: 'There are no cars currently listed for rent. Contact Alqirsh if you would like help with a vehicle enquiry.' }
+      : { title: 'استكشف سيارات للإيجار', description: 'لا توجد سيارات معروضة للإيجار حاليًا. تواصل مع القرش إذا كنت ترغب في الاستفسار عن سيارة.' };
+  return localizedMetadata({ ...metadata, alternates: { canonical: '/cars/rent' }, ...(!count ? { robots: { index: false, follow: true } } : {}) });
+}
 
-export const metadata: Metadata = { title: 'سيارات للإيجار في مصر', description: 'تصفح السيارات المعروضة للإيجار في مصر، واطلع على الأسعار اليومية أو الأسبوعية أو الشهرية المتاحة.', alternates: { canonical: '/cars/rent' } };
 
 export default async function CarsForRentPage() {
   const vehicles = await getPublicCars('rent');

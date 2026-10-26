@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PublicInfoPage } from '@/components/public-info-page';
+import { localizedMetadata } from '@/lib/metadata';
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata({ title: 'الأسئلة الشائعة', description: 'إجابات عن البحث في العقارات والسيارات واستخدام الحسابات ونشر العروض على منصة القِرش.', alternates: { canonical: '/faq' }, openGraph: { type: 'website', title: 'الأسئلة الشائعة | القِرش' } });
+}
 
-export const metadata: Metadata = { title: 'الأسئلة الشائعة', description: 'إجابات عن البحث في العقارات والسيارات واستخدام الحسابات ونشر العروض على منصة القِرش.', alternates: { canonical: '/faq' }, openGraph: { type: 'website', title: 'الأسئلة الشائعة | القِرش' } };
 
 const groups = [
   { title: 'العقارات', questions: [

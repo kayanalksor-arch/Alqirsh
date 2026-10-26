@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
+import { useLanguage } from '@/components/language-provider';
 
 type PublicLink = readonly [string, string];
 
 export function PublicMobileNav({ links, authenticated }: { links: readonly PublicLink[]; authenticated: boolean }) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
 
   return (
@@ -15,19 +17,19 @@ export function PublicMobileNav({ links, authenticated }: { links: readonly Publ
         type="button"
         onClick={() => setOpen(true)}
         className="grid size-11 shrink-0 place-items-center rounded-xl border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] sm:hidden"
-        aria-label="فتح قائمة الموقع"
+        aria-label={t('فتح قائمة الموقع')}
         aria-expanded={open}
       >
         <Menu size={20} aria-hidden="true" />
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 sm:hidden" role="dialog" aria-modal="true" aria-label="قائمة الموقع">
+        <div className="fixed inset-0 z-50 sm:hidden" role="dialog" aria-modal="true" aria-label={t('قائمة الموقع')}>
           <button
             type="button"
             onClick={() => setOpen(false)}
             className="absolute inset-0 bg-black/45"
-            aria-label="إغلاق قائمة الموقع"
+            aria-label={t('إغلاق قائمة الموقع')}
           />
           <aside className="relative mr-auto flex h-full w-[min(19rem,88vw)] flex-col overflow-y-auto bg-[var(--surface)] p-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-[var(--line)] pb-5">
@@ -36,12 +38,12 @@ export function PublicMobileNav({ links, authenticated }: { links: readonly Publ
                 type="button"
                 onClick={() => setOpen(false)}
                 className="grid size-11 place-items-center rounded-xl border border-[var(--line)]"
-                aria-label="إغلاق قائمة الموقع"
+                aria-label={t('إغلاق قائمة الموقع')}
               >
                 <X size={20} aria-hidden="true" />
               </button>
             </div>
-            <nav className="mt-5 grid gap-1" aria-label="قائمة الموقع">
+            <nav className="mt-5 grid gap-1" aria-label={t('قائمة الموقع')}>
               {links.map(([href, label]) => (
                 <Link
                   key={href}
@@ -49,7 +51,7 @@ export function PublicMobileNav({ links, authenticated }: { links: readonly Publ
                   onClick={() => setOpen(false)}
                   className="rounded-xl px-3 py-3 text-sm font-bold text-[var(--muted)] transition hover:bg-[var(--canvas)] hover:text-[var(--brand)]"
                 >
-                  {label}
+                  {t(label)}
                 </Link>
               ))}
               <Link
@@ -57,7 +59,7 @@ export function PublicMobileNav({ links, authenticated }: { links: readonly Publ
                 onClick={() => setOpen(false)}
                 className="mt-3 rounded-xl bg-[var(--brand)] px-3 py-3 text-center text-sm font-bold text-white"
               >
-                {authenticated ? 'لوحة التحكم' : 'تسجيل الدخول'}
+                {t(authenticated ? 'لوحة التحكم' : 'تسجيل الدخول')}
               </Link>
             </nav>
           </aside>

@@ -3,8 +3,11 @@ import { useMemo, useState } from 'react';
 import { MapPin, Search } from 'lucide-react';
 import Link from 'next/link';
 import { ListingImage } from '@/components/listing-image';
-import { formatEgp, listingStatusClass, listingStatusLabel } from '@/lib/listings';
+import { formatEgpLocalized, listingStatusClass, listingStatusLabel } from '@/lib/listings';
 import type { PublicPropertyCard } from '@/lib/public-catalogue';
+import { useLanguage } from '@/components/language-provider';
+import { translateEnum } from '@/lib/i18n';
+import { LocalizedUserContent } from '@/components/localized-user-content';
 
 const normalizeSearchText = (value: string) =>
   value
@@ -15,6 +18,7 @@ const normalizeSearchText = (value: string) =>
     .trim();
 
 export function PropertiesListingView({ view, offers }: { view: 'all' | 'sale' | 'rent'; offers: PublicPropertyCard[] }) {
+  const { locale, t } = useLanguage();
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [propertyType, setPropertyType] = useState('');
@@ -73,7 +77,7 @@ export function PropertiesListingView({ view, offers }: { view: 'all' | 'sale' |
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full bg-transparent outline-none text-sm"
-            placeholder="ابحث بالعنوان أو المنطقة أو النوع"
+            placeholder={t('ابحث بالعنوان أو المنطقة أو النوع')}
           />
         </label>
 
@@ -82,10 +86,10 @@ export function PropertiesListingView({ view, offers }: { view: 'all' | 'sale' |
           onChange={(e) => setPropertyType(e.target.value)}
           className="min-h-12 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 text-sm font-semibold"
         >
-          <option value="">كل الأنواع</option>
+          <option value="">{t('كل الأنواع')}</option>
           {propertyTypes.map((type) => (
             <option key={type} value={type}>
-              {type}
+              {translateEnum(type, locale)}
             </option>
           ))}
         </select>
@@ -95,10 +99,10 @@ export function PropertiesListingView({ view, offers }: { view: 'all' | 'sale' |
           onChange={(e) => setLocation(e.target.value)}
           className="min-h-12 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 text-sm font-semibold"
         >
-          <option value="">كل المناطق</option>
+          <option value="">{t('كل المناطق')}</option>
           {locations.map((loc) => (
             <option key={loc} value={loc}>
-              {loc}
+              {translateEnum(loc, locale)}
             </option>
           ))}
         </select>
@@ -109,9 +113,9 @@ export function PropertiesListingView({ view, offers }: { view: 'all' | 'sale' |
             onChange={(e) => setTypeFilter(e.target.value)}
             className="min-h-12 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 text-sm font-semibold"
           >
-            <option value="">كل الأنواع</option>
-            <option value="sale">بيع فقط</option>
-            <option value="rent">إيجار فقط</option>
+            <option value="">{t('كل الأنواع')}</option>
+            <option value="sale">{t('بيع فقط')}</option>
+            <option value="rent">{t('إيجار فقط')}</option>
           </select>
         )}
       </section>
@@ -119,7 +123,7 @@ export function PropertiesListingView({ view, offers }: { view: 'all' | 'sale' |
       {/* Results */}
       {filtered.length === 0 ? (
         <section className="panel mt-8 rounded-2xl p-10 text-center">
-          <h2 className="font-black">لا توجد نتائج مطابقة</h2>
+          <h2 className="font-black">{allOffers.length === 0 ? t('لا توجد عقارات متاحة حاليًا') : t('لا توجد نتائج مطابقة')}</h2>
           <button
             onClick={() => {
               setQuery('');
@@ -129,8 +133,9 @@ export function PropertiesListingView({ view, offers }: { view: 'all' | 'sale' |
             }}
             className="mt-4 text-sm font-bold text-[var(--brand)]"
           >
-            مسح البحث والفلتر
+            {t('مسح البحث والفلتر')}
           </button>
+          <Link href="/contact" className="mt-3 inline-block text-sm font-bold text-[var(--brand)] underline">{t('تواصل معنا')}</Link>
         </section>
       ) : (
         <section className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
@@ -140,32 +145,32 @@ export function PropertiesListingView({ view, offers }: { view: 'all' | 'sale' |
             return (
               <article key={offer.id} className="panel overflow-hidden rounded-2xl">
                 <div className="relative aspect-[16/10] overflow-hidden bg-[var(--canvas)]">
-                  <ListingImage src={images[0]} alt={offer.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw" className="h-full w-full object-cover" />
+                  <ListingImage src={images[0]} alt={offer.title} fill sizes="(max-width: 639px) calc(50vw - 1.125rem), (max-width: 1023px) calc(50vw - 1.25rem), (max-width: 1279px) calc(33.333vw - 1.25rem), 18rem" className="h-full w-full object-cover" />
                   <span className="absolute right-3 top-3 rounded-full bg-[var(--brand)] px-2.5 py-1 text-[10px] font-bold text-white">
-                    {isRental ? 'إيجار' : 'بيع'}
+                    {t(isRental ? 'إيجار' : 'بيع')}
                   </span>
                 </div>
                 <div className="p-4">
-                  <p className="text-[10px] font-bold text-[var(--brand)]">{offer.property_type || '—'}</p>
-                  <span className={`status-badge mt-2 ${listingStatusClass(offer.status)}`}>{listingStatusLabel(offer.status, isRental ? 'rent' : 'sale')}</span>
-                  <h2 className="mt-2 min-h-[2.5rem] text-sm font-black line-clamp-2">{offer.title}</h2>
+                  <p className="text-[10px] font-bold text-[var(--brand)]">{offer.property_type ? translateEnum(offer.property_type, locale) : '—'}</p>
+                  <span className={`status-badge mt-2 ${listingStatusClass(offer.status)}`}>{t(listingStatusLabel(offer.status, isRental ? 'rent' : 'sale'))}</span>
+                  <h2 className="mt-2 min-h-[2.5rem] text-sm font-black line-clamp-2"><LocalizedUserContent value={offer.title} /></h2>
                   <div className="mt-2 flex items-center gap-1 text-xs text-[var(--muted)]">
                     <MapPin size={12} />
-                    {offer.location || '—'}
+                    <LocalizedUserContent value={offer.location} />
                   </div>
                   {offer.bedrooms && (
                     <p className="mt-1 text-[11px] text-[var(--muted)]">
-                      {offer.bedrooms} غرف • {offer.bathrooms || '—'} حمام
+                      {offer.bedrooms} {t('غرف')} • {offer.bathrooms || '—'} {t('حمام')}
                     </p>
                   )}
                   <p className="mt-3 text-lg font-black text-[var(--brand)]">
-                    {formatEgp(offer.price)}{isRental ? ' / شهرياً' : ''}
+                    {formatEgpLocalized(offer.price, locale)}{isRental ? ` / ${t('شهرياً')}` : ''}
                   </p>
                   <Link
                     href={`/properties/${offer.id}${isRental ? '?type=rental' : ''}`}
                     className="mt-3 block rounded-lg border border-[var(--line)] py-2 text-center text-xs font-bold text-[var(--ink)] transition hover:bg-[var(--canvas)]"
                   >
-                    التفاصيل
+                    {t('التفاصيل')}
                   </Link>
                 </div>
               </article>

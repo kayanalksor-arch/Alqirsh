@@ -4,8 +4,23 @@ import { PublicFooter } from '@/components/public-footer';
 import { CarsListingView } from '@/components/cars-listing-view';
 import { getPublicCars } from '@/lib/public-catalogue';
 import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/metadata';
+import { cookies } from 'next/headers';
+import { indexableListingStatuses } from '@/lib/listings';
+export async function generateMetadata(): Promise<Metadata> {
+  const [listings, cookieStore] = await Promise.all([getPublicCars('sale'), cookies()]);
+  const count = listings.filter((listing) => indexableListingStatuses.includes(listing.status as (typeof indexableListingStatuses)[number])).length;
+  const locale = cookieStore.get('alqirsh-language')?.value === 'en' ? 'en' : 'ar';
+  const metadata = count
+    ? locale === 'en'
+      ? { title: `Cars for Sale in Egypt (${count} listings)`, description: `Browse ${count} currently listed cars for sale in Egypt, with recorded make, model, year, condition, location, and price details.` }
+      : { title: `سيارات للبيع في مصر (${count} عروض)`, description: `تصفح ${count} من السيارات المنشورة للبيع في مصر، مع تفاصيل مسجلة عن الماركة والموديل والسنة والحالة والموقع والسعر.` }
+    : locale === 'en'
+      ? { title: 'Explore Cars for Sale', description: 'There are no cars currently listed for sale. Contact Alqirsh if you would like help with a vehicle enquiry.' }
+      : { title: 'استكشف سيارات للبيع', description: 'لا توجد سيارات معروضة للبيع حاليًا. تواصل مع القرش إذا كنت ترغب في الاستفسار عن سيارة.' };
+  return localizedMetadata({ ...metadata, alternates: { canonical: '/cars/sale' }, ...(!count ? { robots: { index: false, follow: true } } : {}) });
+}
 
-export const metadata: Metadata = { title: 'سيارات للبيع في مصر', description: 'استعرض السيارات المعروضة للبيع في مصر، مع تفاصيل كل سيارة وسعرها ومواصفاتها على منصة القِرش.', alternates: { canonical: '/cars/sale' } };
 
 export default async function CarsForSalePage() {
   const vehicles = await getPublicCars('sale');

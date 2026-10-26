@@ -5,13 +5,16 @@ import { ContactCard } from '@/components/contact-card';
 import { PublicFooter } from '@/components/public-footer';
 import { PublicHeader } from '@/components/public-header';
 import { SocialLinks } from '@/components/social-links';
-
-export const metadata: Metadata = {
+import { localizedMetadata } from '@/lib/metadata';
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata({
   title: 'تواصل معنا',
   description: 'تواصل مع فريق القِرش واستكشف حساباتنا الرسمية على فيسبوك وإنستجرام وتيك توك.',
   alternates: { canonical: '/contact' },
   openGraph: { type: 'website', title: 'تواصل معنا | القِرش', description: 'وسائل التواصل الرسمية مع منصة القِرش.' },
-};
+});
+}
+
 
 export default function ContactPage() {
   return <main className="app-shell min-h-screen"><PublicHeader />

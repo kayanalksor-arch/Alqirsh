@@ -3,6 +3,8 @@ import { Plus, Printer, Search, X } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { deleteManagedEntity, saveManagedEntity } from '@/app/actions/management';
+import { useLanguage } from '@/components/language-provider';
+import { translateEnum } from '@/lib/i18n';
 
 type Field = { key: string; label: string; type?: 'text' | 'number' | 'date' | 'textarea'; required?: boolean; options?: readonly (readonly [string, string])[]; relation?: readonly [string, string] };
 type Config = { table: string; title: string; singular: string; fields: readonly Field[]; display: readonly string[] };
@@ -17,6 +19,7 @@ const normalizeText = (value: string) =>
     .trim();
 
 export function ManagedEntityManager({ config }: { config: Config }) {
+  const { locale, t } = useLanguage();
   const [rows, setRows] = useState<Row[]>([]);
   const [form, setForm] = useState<Record<string, string> | null>(null);
   const [edit, setEdit] = useState<Row | null>(null);
@@ -61,7 +64,9 @@ export function ManagedEntityManager({ config }: { config: Config }) {
 
   function text(field: Field, value: unknown) {
     if (value == null || value === '') return '—';
-    return field.options?.find((option) => option[0] === String(value))?.[1] ?? String(value);
+    const option = field.options?.find((option) => option[0] === String(value));
+    if (option) return t(option[1]);
+    return translateEnum(String(value), locale);
   }
 
   function printCard(row: Row) {
@@ -128,7 +133,7 @@ export function ManagedEntityManager({ config }: { config: Config }) {
 
     const missing = config.fields.filter((field) => field.required && (form[field.key] ?? '').trim() === '');
     if (missing.length) {
-      setMsg(`الحقول المطلوبة ناقصة: ${missing.map((field) => field.label).join(', ')}`);
+      setMsg(`${t('الحقول المطلوبة ناقصة')}: ${missing.map((field) => t(field.label)).join(', ')}`);
       return;
     }
 
@@ -138,13 +143,13 @@ export function ManagedEntityManager({ config }: { config: Config }) {
         const dateValue = form[field.key].trim();
         // Check if it's a valid date format (YYYY-MM-DD)
         if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-          setMsg(`قيمة ${field.label} غير صحيحة. يجب أن تكون بصيغة تاريخ صحيحة.`);
+          setMsg(`${t('قيمة')} ${t(field.label)} ${t('غير صحيحة. يجب أن تكون بصيغة تاريخ صحيحة.')}`);
           return;
         }
         // Try to parse the date to ensure it's valid
         const parsed = new Date(dateValue);
         if (isNaN(parsed.getTime())) {
-          setMsg(`قيمة ${field.label} غير صحيحة. التاريخ المدخل غير صالح.`);
+          setMsg(`${t('قيمة')} ${t(field.label)} ${t('غير صحيحة. التاريخ المدخل غير صالح.')}`);
           return;
         }
       }
@@ -163,7 +168,7 @@ export function ManagedEntityManager({ config }: { config: Config }) {
       setMsg('تم الحفظ بنجاح.');
       await load();
     } catch (error) {
-      setMsg(error instanceof Error ? error.message : 'تعذر الحفظ.');
+        setMsg(error instanceof Error ? t(error.message) : t('تعذر الحفظ.'));
     } finally {
       setSaving(false);
     }
@@ -174,7 +179,7 @@ export function ManagedEntityManager({ config }: { config: Config }) {
       <div className="dashboard-controls panel rounded-2xl p-4 md:flex md:items-center md:justify-between">
         <label className="flex min-h-12 flex-1 items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3">
           <Search size={18} className="text-[var(--muted)]" />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} className="w-full bg-transparent outline-none" placeholder="ابحث بالاسم أو الوصف أو التفاصيل" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} className="w-full bg-transparent outline-none" placeholder={t('ابحث بالاسم أو الوصف أو التفاصيل')} />
         </label>
         <button type="button" onClick={() => open()} className="rounded-xl bg-[var(--brand)] px-5 py-3 font-bold text-white">
           <Plus className="inline" /> إضافة {config.singular}

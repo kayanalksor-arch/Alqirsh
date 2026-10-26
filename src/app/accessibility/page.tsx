@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { InfoList, PublicInfoPage } from '@/components/public-info-page';
+import { localizedMetadata } from '@/lib/metadata';
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata({ title: 'إمكانية الوصول', description: 'معلومات عن جهود منصة القِرش لتحسين سهولة استخدام الموقع والوصول إلى محتواه.', alternates: { canonical: '/accessibility' }, openGraph: { type: 'article', title: 'إمكانية الوصول | القِرش' } });
+}
 
-export const metadata: Metadata = { title: 'إمكانية الوصول', description: 'معلومات عن جهود منصة القِرش لتحسين سهولة استخدام الموقع والوصول إلى محتواه.', alternates: { canonical: '/accessibility' }, openGraph: { type: 'article', title: 'إمكانية الوصول | القِرش' } };
 
 export default function AccessibilityPage() {
   return <PublicInfoPage eyebrow="معلومات المنصة" title="إمكانية الوصول" intro="نعمل على جعل صفحات القِرش أوضح وأسهل استخدامًا عبر الشاشات المختلفة، مع دعم اللغة العربية واتجاه الكتابة من اليمين إلى اليسار." sections={[

@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { PublicInfoPage } from '@/components/public-info-page';
+import { localizedMetadata } from '@/lib/metadata';
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata({ title: 'سياسة ملفات تعريف الارتباط', description: 'تعرف على جلسات المصادقة وتفضيلات المظهر المحلية المستخدمة في موقع القِرش.', alternates: { canonical: '/cookie-policy' }, openGraph: { type: 'article', title: 'سياسة ملفات تعريف الارتباط | القِرش' } });
+}
 
-export const metadata: Metadata = { title: 'سياسة ملفات تعريف الارتباط', description: 'تعرف على جلسات المصادقة وتفضيلات المظهر المحلية المستخدمة في موقع القِرش.', alternates: { canonical: '/cookie-policy' }, openGraph: { type: 'article', title: 'سياسة ملفات تعريف الارتباط | القِرش' } };
 
 export default function CookiePolicyPage() {
   return <PublicInfoPage eyebrow="السياسات" title="سياسة ملفات تعريف الارتباط" intro="توضح هذه الصفحة التقنيات المحلية التي رصدناها في التطبيق الحالي. قد تتغير التفاصيل إذا أضيفت خدمات جديدة." updatedAt="11 أكتوبر 2026" sections={[

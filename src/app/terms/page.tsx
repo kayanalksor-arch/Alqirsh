@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { InfoList, PublicInfoPage } from '@/components/public-info-page';
+import { localizedMetadata } from '@/lib/metadata';
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata({ title: 'الشروط والأحكام', description: 'اقرأ شروط استخدام منصة القِرش وقواعد الحسابات والعروض والتواصل.', alternates: { canonical: '/terms' }, openGraph: { type: 'article', title: 'الشروط والأحكام | القِرش' } });
+}
 
-export const metadata: Metadata = { title: 'الشروط والأحكام', description: 'اقرأ شروط استخدام منصة القِرش وقواعد الحسابات والعروض والتواصل.', alternates: { canonical: '/terms' }, openGraph: { type: 'article', title: 'الشروط والأحكام | القِرش' } };
 
 export default function TermsPage() {
   return <PublicInfoPage eyebrow="السياسات" title="الشروط والأحكام" intro="تنظم هذه الشروط استخدام الموقع وخدماته المتاحة. باستخدامك للمنصة، يرجى الالتزام بالقواعد أدناه وقراءة المعلومات المنشورة بعناية." updatedAt="11 أكتوبر 2026" sections={[

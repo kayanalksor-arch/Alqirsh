@@ -4,8 +4,23 @@ import { PublicFooter } from '@/components/public-footer';
 import { PropertiesListingView } from '@/components/properties-listing-view';
 import { getPublicProperties } from '@/lib/public-catalogue';
 import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/metadata';
+import { cookies } from 'next/headers';
+import { indexableListingStatuses } from '@/lib/listings';
+export async function generateMetadata(): Promise<Metadata> {
+  const [offers, cookieStore] = await Promise.all([getPublicProperties('rent'), cookies()]);
+  const count = offers.filter((offer) => indexableListingStatuses.includes(offer.status as (typeof indexableListingStatuses)[number])).length;
+  const locale = cookieStore.get('alqirsh-language')?.value === 'en' ? 'en' : 'ar';
+  const metadata = count
+    ? locale === 'en'
+      ? { title: `Properties for Rent in Egypt (${count} listings)`, description: `Browse ${count} currently listed rental properties in Egypt, with recorded location, area, property type, and price details.` }
+      : { title: `عقارات للإيجار في مصر (${count} إعلانًا)`, description: `تصفح ${count} من العقارات المنشورة للإيجار في مصر، مع معلومات مسجلة عن الموقع والمساحة ونوع العقار والسعر.` }
+    : locale === 'en'
+      ? { title: 'Explore Properties for Rent', description: 'No properties are currently listed for rent. Contact Alqirsh to ask about available options.' }
+      : { title: 'استكشف عقارات للإيجار', description: 'لا توجد عقارات معروضة للإيجار حاليًا. تواصل مع القرش للاستفسار عن الخيارات المتاحة.' };
+  return localizedMetadata({ ...metadata, alternates: { canonical: '/properties/rent' }, ...(!count ? { robots: { index: false, follow: true } } : {}) });
+}
 
-export const metadata: Metadata = { title: 'عقارات للإيجار في مصر', description: 'تصفح العقارات المعروضة للإيجار في مصر، واعثر على الخيارات المناسبة حسب المنطقة ونوع العقار.', alternates: { canonical: '/properties/rent' } };
 
 export default async function RentPropertiesPage() {
   const offers = await getPublicProperties('rent');

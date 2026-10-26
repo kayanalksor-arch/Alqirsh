@@ -6,7 +6,9 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { addBrandWatermark } from '@/lib/image-watermark';
 import { ListingImage } from '@/components/listing-image';
-import { listingStatusClass, listingStatusLabel, listingStatusesForType } from '@/lib/listings';
+import { LocalizedUserContent } from '@/components/localized-user-content';
+import { useLanguage } from '@/components/language-provider';
+import { formatEgpLocalized, listingStatusClass, listingStatusLabel, listingStatusesForType } from '@/lib/listings';
 
 type Offer = {
   id: string;
@@ -55,6 +57,7 @@ async function ensureManagerProfile(db: ReturnType<typeof createClient>) {
 }
 
 export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
+  const { locale } = useLanguage();
   const table = kind === 'sale' ? 'sale_offers' : 'rental_offers';
   const entity = kind === 'sale' ? 'عرض بيع' : 'عرض إيجار';
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -119,7 +122,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
   const locations = useMemo(() => [...new Set(offers.map((offer) => offer.location).filter(Boolean))] as string[], [offers]);
   const statuses = listingStatusesForType(kind === 'rental' ? 'rent' : 'sale');
   const normalizeText = (value: string) => value.toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
-  const formatNumber = (value: number | null) => value === null ? '—' : new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 2 }).format(value);
+  const formatNumber = (value: number | null) => value === null ? '—' : new Intl.NumberFormat(locale === 'en' ? 'en-EG' : 'ar-EG', { maximumFractionDigits: 2 }).format(value);
 
   const shown = useMemo(
     () =>
@@ -329,10 +332,10 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
               <div className="flex flex-1 flex-col p-5">
                 <span className={`status-badge ${listingStatusClass(offer.status)}`}>{listingStatusLabel(offer.status, kind === 'rental' ? 'rent' : 'sale')}</span>
                 <div className="mt-2 flex items-start justify-between gap-3">
-                  <h2 className="flex-1 font-black">{offer.title}</h2>
-                  <strong className="shrink-0 text-[var(--brand)]">{formatNumber(offer.price)} ج.م</strong>
+                  <h2 className="flex-1 font-black"><LocalizedUserContent value={offer.title} /></h2>
+                  <strong className="shrink-0 text-[var(--brand)]">{formatEgpLocalized(offer.price, locale)}</strong>
                 </div>
-                <p className="mt-2 text-sm text-[var(--muted)]">{offer.location ?? 'الموقع غير محدد'} · {offer.property_type ?? 'نوع غير محدد'}</p>
+                <p className="mt-2 text-sm text-[var(--muted)]"><LocalizedUserContent value={offer.location ?? 'الموقع غير محدد'} /> · {offer.property_type ?? 'نوع غير محدد'}</p>
                 <div className="mt-auto flex justify-between gap-2 pt-4">
                   <button type="button" onClick={() => setViewing(offer)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-bold">عرض</button>
                   <button type="button" onClick={() => open(offer)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--line)] px-3 py-2 text-sm font-bold"><Edit3 size={16} />تعديل</button>
@@ -485,7 +488,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
               </div>
               <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">السعر</p>
-                <p className="mt-2 font-bold">{formatNumber(viewing.price)} ج.م</p>
+                <p className="mt-2 font-bold">{formatEgpLocalized(viewing.price, locale)}</p>
               </div>
               <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">الموقع</p>
@@ -513,7 +516,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
               </div>
               <div className="rounded-xl border border-[var(--line)] p-3">
                 <p className="text-xs text-[var(--muted)]">الوصف</p>
-                <p className="mt-2 whitespace-pre-line font-bold">{viewing.description || 'لا يوجد وصف.'}</p>
+                <p className="mt-2 whitespace-pre-line font-bold">{viewing.description ? <LocalizedUserContent value={viewing.description} /> : 'لا يوجد وصف.'}</p>
               </div>
               {viewing.map_url && (
                 <div className="rounded-xl border border-[var(--line)] p-3">

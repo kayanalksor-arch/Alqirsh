@@ -4,8 +4,23 @@ import { PublicFooter } from '@/components/public-footer';
 import { PropertiesListingView } from '@/components/properties-listing-view';
 import { getPublicProperties } from '@/lib/public-catalogue';
 import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/metadata';
+import { cookies } from 'next/headers';
+import { indexableListingStatuses } from '@/lib/listings';
+export async function generateMetadata(): Promise<Metadata> {
+  const [offers, cookieStore] = await Promise.all([getPublicProperties('sale'), cookies()]);
+  const count = offers.filter((offer) => indexableListingStatuses.includes(offer.status as (typeof indexableListingStatuses)[number])).length;
+  const locale = cookieStore.get('alqirsh-language')?.value === 'en' ? 'en' : 'ar';
+  const metadata = count
+    ? locale === 'en'
+      ? { title: `Properties for Sale in Egypt (${count} listings)`, description: `Browse ${count} currently listed properties for sale in Egypt, with recorded location, area, property type, and price details.` }
+      : { title: `عقارات للبيع في مصر (${count} إعلانًا)`, description: `تصفح ${count} من العقارات المنشورة للبيع في مصر، مع معلومات مسجلة عن الموقع والمساحة ونوع العقار والسعر.` }
+    : locale === 'en'
+      ? { title: 'Explore Properties for Sale', description: 'No properties are currently listed for sale. Contact Alqirsh to ask about available options.' }
+      : { title: 'استكشف عقارات للبيع', description: 'لا توجد عقارات معروضة للبيع حاليًا. تواصل مع القرش للاستفسار عن الخيارات المتاحة.' };
+  return localizedMetadata({ ...metadata, alternates: { canonical: '/properties/sale' }, ...(!count ? { robots: { index: false, follow: true } } : {}) });
+}
 
-export const metadata: Metadata = { title: 'عقارات للبيع في مصر', description: 'اكتشف عقارات للبيع في مصر مع معلومات عن النوع والمساحة والمنطقة والسعر المسجل لكل عرض.', alternates: { canonical: '/properties/sale' } };
 
 export default async function SalePropertiesPage() {
   const offers = await getPublicProperties('sale');

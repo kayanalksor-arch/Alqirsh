@@ -46,7 +46,7 @@ export const getPublicPropertyPageData = cache(async (id: string, listingType: '
   return { property: data as PublicProperty, images };
 });
 
-export async function getPublicCars(view: 'all' | 'sale' | 'rent'): Promise<PublicCar[]> {
+export const getPublicCars = cache(async (view: 'all' | 'sale' | 'rent'): Promise<PublicCar[]> => {
   if (!isSupabaseConfigured) return [];
   const db = createPublicClient();
   let query = db.from('vehicle_listings')
@@ -56,9 +56,9 @@ export async function getPublicCars(view: 'all' | 'sale' | 'rent'): Promise<Publ
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as PublicCar[];
-}
+});
 
-export async function getPublicProperties(view: 'all' | 'sale' | 'rent'): Promise<PublicPropertyCard[]> {
+export const getPublicProperties = cache(async (view: 'all' | 'sale' | 'rent'): Promise<PublicPropertyCard[]> => {
   if (!isSupabaseConfigured) return [];
   const db = createPublicClient();
   const types = view === 'all' ? ['sale', 'rental'] as const : [view === 'rent' ? 'rental' : 'sale'] as const;
@@ -85,7 +85,7 @@ export async function getPublicProperties(view: 'all' | 'sale' | 'rent'): Promis
     return rows.map((row) => ({ ...row, listingType: type, images: byProperty.get(row.id) ?? [] }));
   }));
   return groups.flat();
-}
+});
 
 export async function getIndexableListings() {
   if (!isSupabaseConfigured) return { properties: [], cars: [] };
@@ -93,13 +93,22 @@ export async function getIndexableListings() {
   const statuses = [...indexableListingStatuses];
   const fetchAll = async (table: 'sale_offers' | 'rental_offers' | 'vehicle_listings') => {
     const batchSize = 1000;
-    const rows: { id: string; updated_at: string | null }[] = [];
+    const rows: { id: string; updated_at: string | null; listing_type?: 'sale' | 'rent' | null }[] = [];
     for (let from = 0; ; from += batchSize) {
-      const { data, error } = await db.from(table).select('id,updated_at')
-        .in('status', statuses).order('id').range(from, from + batchSize - 1);
-      if (error) throw error;
-      rows.push(...(data ?? []));
-      if (!data || data.length < batchSize) return rows;
+      let data: typeof rows;
+      if (table === 'vehicle_listings') {
+        const result = await db.from('vehicle_listings').select('id,listing_type')
+          .in('status', statuses).order('id').range(from, from + batchSize - 1);
+        if (result.error) throw result.error;
+        data = (result.data ?? []).map((item) => ({ id: item.id, updated_at: null, listing_type: item.listing_type }));
+      } else {
+        const result = await db.from(table).select('id,updated_at')
+          .in('status', statuses).order('id').range(from, from + batchSize - 1);
+        if (result.error) throw result.error;
+        data = (result.data ?? []) as typeof rows;
+      }
+      rows.push(...data);
+      if (data.length < batchSize) return rows;
       if (rows.length >= 50_000) throw new Error(`The ${table} sitemap exceeds Google's 50,000 URL limit.`);
     }
   };

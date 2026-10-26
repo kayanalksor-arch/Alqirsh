@@ -8,7 +8,9 @@ import { deleteVehicle as deleteVehicleAction, getVehicleImages, getVehiclePermi
 import { VehicleBookingButton } from '@/components/vehicle-booking-button';
 import { addBrandWatermark } from '@/lib/image-watermark';
 import { ListingImage } from '@/components/listing-image';
-import { bookingStatusLabel, formatEgp, listingStatusClass, listingStatusLabel, listingStatusesForType } from '@/lib/listings';
+import { LocalizedUserContent } from '@/components/localized-user-content';
+import { useLanguage } from '@/components/language-provider';
+import { bookingStatusLabel, formatEgpLocalized, listingStatusClass, listingStatusLabel, listingStatusesForType } from '@/lib/listings';
 
 type Vehicle = {
   id: string;
@@ -97,6 +99,7 @@ async function ensureManager(type: 'sale'|'rent' = 'rent', action: 'view'|'add'|
 }
 
 export function VehicleManager() {
+  const { locale } = useLanguage();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -356,7 +359,7 @@ export function VehicleManager() {
         </button>}
       </div>
 
-      {bookingPermissions?.canViewBookings&&<section className="panel mt-4 overflow-x-auto rounded-2xl p-4"><h2 className="mb-3 font-black">حجوزات السيارات</h2>{bookingMessage&&<p className="mb-3 text-sm text-red-600">{bookingMessage}</p>}<table className="w-full min-w-[700px] text-right text-sm"><thead><tr><th className="p-2">السيارة</th><th className="p-2">العميل</th><th className="p-2">الاستلام</th><th className="p-2">الإعادة</th><th className="p-2">الإجمالي</th><th className="p-2">الحالة</th><th className="p-2">الإجراء</th></tr></thead><tbody>{bookings.map((booking)=><tr key={booking.id} className="border-t border-[var(--line)]"><td className="p-2">{booking.vehicle_listings?.title}</td><td className="p-2">{bookingPermissions.canViewCustomerDetails?`${booking.customer_name??''} ${booking.customer_phone??''}`:'—'}</td><td className="p-2">{new Date(booking.starts_at).toLocaleString('ar-EG',{timeZone:'Africa/Cairo'})}</td><td className="p-2">{new Date(booking.ends_at).toLocaleString('ar-EG',{timeZone:'Africa/Cairo'})}</td><td className="p-2">{Number(booking.total_amount).toLocaleString('ar-EG')} ج.م</td><td className="p-2">{bookingStatusLabel(booking.status)}</td><td className="p-2">{booking.status==='confirmed'&&bookingPermissions.canCancel&&<button className="text-red-600" onClick={async()=>{if(!confirm('هل تريد إلغاء هذا الحجز؟'))return;try{await setVehicleBookingStatus(booking.id,'cancelled');setBookings((old)=>old.map((item)=>item.id===booking.id?{...item,status:'cancelled'}:item));}catch{setBookingMessage('تعذر إلغاء الحجز. يرجى المحاولة مرة أخرى.');}}}>إلغاء الحجز</button>}</td></tr>)}</tbody></table></section>}
+      {bookingPermissions?.canViewBookings&&<section className="panel mt-4 overflow-x-auto rounded-2xl p-4"><h2 className="mb-3 font-black">حجوزات السيارات</h2>{bookingMessage&&<p className="mb-3 text-sm text-red-600">{bookingMessage}</p>}<table className="w-full min-w-[700px] text-right text-sm"><thead><tr><th className="p-2">السيارة</th><th className="p-2">العميل</th><th className="p-2">الاستلام</th><th className="p-2">الإعادة</th><th className="p-2">الإجمالي</th><th className="p-2">الحالة</th><th className="p-2">الإجراء</th></tr></thead><tbody>{bookings.map((booking)=><tr key={booking.id} className="border-t border-[var(--line)]"><td className="p-2">{booking.vehicle_listings?.title}</td><td className="p-2">{bookingPermissions.canViewCustomerDetails?`${booking.customer_name??''} ${booking.customer_phone??''}`:'—'}</td><td className="p-2">{new Date(booking.starts_at).toLocaleString(locale === 'en' ? 'en-EG' : 'ar-EG',{timeZone:'Africa/Cairo'})}</td><td className="p-2">{new Date(booking.ends_at).toLocaleString(locale === 'en' ? 'en-EG' : 'ar-EG',{timeZone:'Africa/Cairo'})}</td><td className="p-2">{formatEgpLocalized(booking.total_amount, locale)}</td><td className="p-2">{bookingStatusLabel(booking.status)}</td><td className="p-2">{booking.status==='confirmed'&&bookingPermissions.canCancel&&<button className="text-red-600" onClick={async()=>{if(!confirm('هل تريد إلغاء هذا الحجز؟'))return;try{await setVehicleBookingStatus(booking.id,'cancelled');setBookings((old)=>old.map((item)=>item.id===booking.id?{...item,status:'cancelled'}:item));}catch{setBookingMessage('تعذر إلغاء الحجز. يرجى المحاولة مرة أخرى.');}}}>إلغاء الحجز</button>}</td></tr>)}</tbody></table></section>}
 
       {message && (
         <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3 text-sm">
@@ -385,12 +388,12 @@ export function VehicleManager() {
                 </span>
               </div>
               <div className="p-3">
-                <p className="text-[10px] font-bold text-[var(--brand)]">{v.brand || '—'} / {v.model || '—'}</p>
-                <p className="mt-1 font-bold text-sm truncate">{v.title}</p>
-                <p className="mt-0.5 text-[11px] text-[var(--muted)]">{v.location || '—'}</p>
+                <p className="text-[10px] font-bold text-[var(--brand)]"><LocalizedUserContent value={v.brand || '—'} /> / <LocalizedUserContent value={v.model || '—'} /></p>
+                <p className="mt-1 font-bold text-sm truncate"><LocalizedUserContent value={v.title} /></p>
+                <p className="mt-0.5 text-[11px] text-[var(--muted)]"><LocalizedUserContent value={v.location || '—'} /></p>
                 <span className={`status-badge mt-2 ${listingStatusClass(v.status)}`}>{listingStatusLabel(v.status, v.listing_type)}</span>
                 <p className="mt-2 text-base font-black text-[var(--brand)]">
-                  {formatEgp(v.price ?? v.daily_price)}
+                  {formatEgpLocalized(v.price ?? v.daily_price, locale)}
                 </p>
                 {v.listing_type === 'rent' && <div className="mt-2"><VehicleBookingButton vehicle={v}/></div>}
                 <div className="mt-2 flex gap-1">
@@ -692,9 +695,9 @@ export function VehicleManager() {
               <div><strong>الماركة:</strong> {viewing.brand || '—'}</div>
               <div><strong>الموديل:</strong> {viewing.model || '—'}</div>
               <div><strong>السنة:</strong> {viewing.year || '—'}</div>
-              <div><strong>السعر:</strong> {formatEgp(viewing.price ?? viewing.daily_price)}</div>
+              <div><strong>السعر:</strong> {formatEgpLocalized(viewing.price ?? viewing.daily_price, locale)}</div>
               <div><strong>الموقع:</strong> {viewing.location || '—'}</div>
-              {viewing.description && <div><strong>الوصف:</strong> {viewing.description}</div>}
+              {viewing.description && <div><strong>الوصف:</strong> <LocalizedUserContent value={viewing.description} /></div>}
             </div>
           </div>
         </div>

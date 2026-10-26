@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { InfoList, PublicInfoPage } from '@/components/public-info-page';
+import { localizedMetadata } from '@/lib/metadata';
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata({ title: 'سياسة نشر العروض', description: 'قواعد نشر وتحديث والإبلاغ عن عروض العقارات والسيارات في منصة القِرش.', alternates: { canonical: '/listing-policy' }, openGraph: { type: 'article', title: 'سياسة نشر العروض | القِرش' } });
+}
 
-export const metadata: Metadata = { title: 'سياسة نشر العروض', description: 'قواعد نشر وتحديث والإبلاغ عن عروض العقارات والسيارات في منصة القِرش.', alternates: { canonical: '/listing-policy' }, openGraph: { type: 'article', title: 'سياسة نشر العروض | القِرش' } };
 
 export default function ListingPolicyPage() {
   return <PublicInfoPage eyebrow="السياسات" title="سياسة نشر العروض" intro="تساعد هذه القواعد على إبقاء العروض المنشورة مفيدة وواضحة للباحثين عن العقارات والسيارات." updatedAt="11 أكتوبر 2026" sections={[

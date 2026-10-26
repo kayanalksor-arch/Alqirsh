@@ -28,8 +28,8 @@ export const listingStatuses = ['available', 'reserved', 'sold', 'rented', 'pend
 export type ListingStatus = (typeof listingStatuses)[number];
 /** Public pages never expose review drafts or archived listings. */
 export const publicListingStatuses: ListingStatus[] = listingStatuses.filter((status) => status !== 'archived' && status !== 'pending_review');
-/** Only currently bookable/available listings belong in the sitemap and search index. */
-export const indexableListingStatuses: ListingStatus[] = ['available', 'reserved'];
+/** Only currently available listings belong in the sitemap and search index. */
+export const indexableListingStatuses: ListingStatus[] = ['available'];
 export const listingStatusOptions: Array<{ value: ListingStatus; label: string }> = listingStatuses.map((status) => ({
   value: status,
   label: listingStatusLabel(status),
@@ -47,6 +47,12 @@ export function listingStatusLabel(status: string | null, listingType?: string |
   if (status === 'available') return listingType === 'rent' || listingType === 'rental' ? 'متاح للإيجار' : 'متاح للبيع';
   const labels: Record<string, string> = { reserved: 'محجوز', sold: 'تم البيع', rented: 'تم التأجير', pending_review: 'قيد المراجعة', temporarily_unavailable: 'موقوف مؤقتًا', unavailable: 'غير متاح', archived: 'مؤرشف', withdrawn: 'تم سحب العرض' };
   return status ? labels[status] ?? 'غير محدد' : 'غير محدد';
+}
+
+export function listingStatusLabelEn(status: string | null, listingType?: string | null) {
+  if (status === 'available') return listingType === 'rent' || listingType === 'rental' ? 'Available for Rent' : 'Available for Sale';
+  const labels: Record<string, string> = { reserved: 'Reserved', sold: 'Sold', rented: 'Rented', pending_review: 'Under Review', temporarily_unavailable: 'Temporarily Unavailable', unavailable: 'Unavailable', archived: 'Archived', withdrawn: 'Listing Withdrawn' };
+  return status ? labels[status] ?? 'Not specified' : 'Not specified';
 }
 
 export function listingStatusClass(status: string | null) {
@@ -69,14 +75,20 @@ export function formatEgp(value: number | string | null | undefined, suffix = '�
   return `${new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 0 }).format(amount)} ${suffix}`;
 }
 
+export function formatEgpLocalized(value: number | string | null | undefined, locale: 'ar' | 'en') {
+  const amount = typeof value === 'string' ? Number(value) : value;
+  if (amount === null || amount === undefined || !Number.isFinite(amount)) return locale === 'en' ? 'Price unavailable' : 'السعر غير متاح';
+  return new Intl.NumberFormat(locale === 'en' ? 'en-EG' : 'ar-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 }).format(amount);
+}
+
 export function formatMoney(value: number | null) {
   if (value === null || !Number.isFinite(value)) return '—';
   return new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 0 }).format(value);
 }
 
-export function formatNumber(value: number | null) {
+export function formatNumber(value: number | null, locale: 'ar' | 'en' = 'ar') {
   if (value === null || Number.isNaN(value)) return '—';
-  return new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat(locale === 'en' ? 'en-EG' : 'ar-EG', { maximumFractionDigits: 0 }).format(value);
 }
 
 export function listingTypeLabel(type: string | null) {
@@ -85,13 +97,27 @@ export function listingTypeLabel(type: string | null) {
   return 'إعلان';
 }
 
+export function listingTypeLabelEn(type: string | null) {
+  if (type === 'rent' || type === 'rental') return 'For Rent';
+  if (type === 'sale') return 'For Sale';
+  return 'Listing';
+}
+
 /** User-facing Arabic labels for known database values. Unknown values stay neutral. */
 export function roleLabel(role: string | null | undefined) {
   return ({ admin: 'مدير النظام', property_manager: 'مدير الأملاك', member: 'عضو' } as Record<string, string>)[role ?? ''] ?? 'مستخدم';
 }
 
+export function roleLabelEn(role: string | null | undefined) {
+  return ({ admin: 'Administrator', property_manager: 'Property Manager', member: 'Member' } as Record<string, string>)[role ?? ''] ?? 'User';
+}
+
 export function bookingStatusLabel(status: string | null | undefined) {
   return ({ confirmed: 'مؤكد', cancelled: 'ملغي', completed: 'مكتمل', pending: 'قيد الانتظار' } as Record<string, string>)[status ?? ''] ?? 'غير محدد';
+}
+
+export function bookingStatusLabelEn(status: string | null | undefined) {
+  return ({ confirmed: 'Confirmed', cancelled: 'Cancelled', completed: 'Completed', pending: 'Pending' } as Record<string, string>)[status ?? ''] ?? 'Not specified';
 }
 
 export function getVehicleImageUrl(listing: Pick<VehicleListing, 'image_url'>, fallback = '/brand/alqirsh-icon.png') {
