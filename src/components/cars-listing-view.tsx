@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import Image from 'next/image';
+import { ListingImage } from '@/components/listing-image';
 import { MapPin, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { formatEgp, formatMoney, listingStatusClass, listingStatusLabel } from '@/lib/listings';
@@ -55,7 +55,7 @@ export function CarsListingView({ view, vehicles }: { view: 'all' | 'sale' | 're
             return (
               <article key={vehicle.id} className="panel overflow-hidden rounded-2xl">
                 <div className="relative aspect-[16/10] overflow-hidden bg-[var(--canvas)]">
-                  {vehicle.image_url ? <Image src={vehicle.image_url} alt={vehicle.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" className="object-cover" /> : <div className="grid h-full place-items-center text-sm text-[var(--muted)]">لا توجد صورة</div>}
+                  <ListingImage src={vehicle.image_url} alt={vehicle.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" className="h-full w-full object-cover" />
                   <span className="absolute right-3 top-3 rounded-full bg-[var(--brand)] px-2.5 py-1 text-[10px] font-bold text-white">{vehicle.listing_type === 'sale' ? 'بيع' : 'إيجار'}</span>
                 </div>
                 <div className="p-4">

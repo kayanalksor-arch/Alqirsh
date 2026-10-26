@@ -1,9 +1,8 @@
 ﻿'use client';
-/* eslint-disable @next/next/no-img-element */
-
 import { BedDouble, Download, MapPin, Maximize2, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { formatEgp, formatNumber } from '@/lib/listings';
+import { ListingImage } from '@/components/listing-image';
 
 type Offer = {
   id: string;
@@ -102,11 +101,7 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
             const photo = images[offer.id]?.[0];
             return (
               <button key={offer.id} type="button" onClick={() => open(offer)} className="panel overflow-hidden rounded-2xl text-right transition hover:-translate-y-1 hover:border-[var(--brand)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]">
-                {photo ? (
-                  <img src={photo} alt={offer.title} className="h-36 w-full object-cover sm:h-52" />
-                ) : (
-                  <div className="grid h-36 place-items-center bg-[var(--canvas)] text-xs text-[var(--muted)] sm:h-52 sm:text-sm">لا توجد صورة</div>
-                )}
+                <ListingImage src={photo} alt={offer.title} className="h-36 w-full object-cover sm:h-52" />
                 <div className="p-3 sm:p-5">
                   <p className="text-[10px] font-bold text-[var(--brand)] sm:text-xs">{offer.property_type ?? (rental ? 'عقار للإيجار' : 'عقار للبيع')}</p>
                   <h2 className="mt-2 text-base font-black sm:text-xl">{offer.title}</h2>
@@ -135,7 +130,7 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
               <div className="grid gap-2 bg-[var(--canvas)] p-2 md:grid-cols-[1.2fr_.8fr]">
                 {images[selected.id].map((src, index) => (
                   <button key={src + index} type="button" onClick={() => setFullImage(src)} className={index === active ? 'block w-full cursor-zoom-in' : 'hidden'} aria-label="فتح الصورة بالحجم الكامل">
-                    <img src={src} alt={selected.title} className="h-80 w-full rounded-2xl object-cover" />
+                    <ListingImage src={src} alt={selected.title} className="h-80 w-full rounded-2xl object-cover" />
                   </button>
                 ))}
 
@@ -143,14 +138,14 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
                   <div className="mt-2 flex gap-2 overflow-x-auto px-2 pb-2">
                     {images[selected.id].map((src, index) => (
                       <button key={src} type="button" onClick={() => setActive(index)} className={`h-16 w-16 overflow-hidden rounded-xl border ${index === active ? 'border-[var(--brand)]' : 'border-[var(--line)]'}`}>
-                        <img src={src} alt={`${selected.title} ${index + 1}`} className="h-full w-full object-cover" />
+                        <ListingImage src={src} alt={`${selected.title} ${index + 1}`} className="h-full w-full object-cover" />
                       </button>
                     ))}
                   </div>
                 )}
               </div>
             ) : (
-              <div className="grid h-80 place-items-center bg-[var(--canvas)] text-[var(--muted)]">لا توجد صورة</div>
+              <div className="h-80 bg-[var(--canvas)]"><ListingImage alt={selected.title} className="h-full w-full object-cover" /></div>
             )}
 
             <div className="p-6 md:p-8">
@@ -176,7 +171,7 @@ export function PublicOfferGallery({ offers, images, rental }: { offers: Offer[]
           <button type="button" onClick={() => setFullImage(null)} className="absolute right-4 top-4 grid size-11 place-items-center rounded-full bg-white/15 text-white" aria-label="إغلاق الصورة">
             <X size={20} />
           </button>
-          <img src={fullImage} alt="صورة العرض بالحجم الكامل" className="max-h-[82vh] max-w-full object-contain" />
+          <ListingImage src={fullImage} alt="صورة العرض بالحجم الكامل" className="max-h-[82vh] max-w-full object-contain" />
           <a href={fullImage} download className="absolute bottom-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-900">
             <Download size={17} /> تنزيل الصورة
           </a>

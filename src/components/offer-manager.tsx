@@ -1,10 +1,11 @@
 'use client';
 /* eslint-disable @next/next/no-img-element */
 
-import { Download, Edit3, ImagePlus, LoaderCircle, Plus, Search, Trash2, X } from 'lucide-react';
+import { Download, Edit3, LoaderCircle, Plus, Search, Trash2, X } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { addBrandWatermark } from '@/lib/image-watermark';
+import { ListingImage } from '@/components/listing-image';
 import { listingStatusClass, listingStatusLabel, listingStatusesForType } from '@/lib/listings';
 
 type Offer = {
@@ -322,7 +323,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
           {shown.map((offer) => (
             <article key={offer.id} className="panel flex h-full flex-col overflow-hidden rounded-2xl">
               <div className="grid h-40 place-items-center bg-[var(--canvas)]">
-                {images[offer.id]?.[0] ? <img src={images[offer.id][0].image_url} alt={offer.title} className="h-full w-full object-cover" /> : <ImagePlus className="text-[var(--subtle)]" size={28} />}
+                <ListingImage src={images[offer.id]?.[0]?.image_url} alt={offer.title} className="h-full w-full object-cover" />
               </div>
 
               <div className="flex flex-1 flex-col p-5">
@@ -469,7 +470,7 @@ export function OfferManager({ kind }: { kind: 'sale' | 'rental' }) {
               <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {images[viewing.id].map((image, index) => (
                   <button key={image.id} type="button" onClick={() => setFullImage(image.image_url)} className="h-36 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--canvas)] sm:h-44" aria-label={`فتح صورة العرض ${index + 1} بالحجم الكامل`}>
-                    <img src={image.image_url} alt={`${viewing.title} ${index + 1}`} className="h-full w-full object-cover transition hover:scale-105" />
+                    <ListingImage src={image.image_url} alt={`${viewing.title} ${index + 1}`} className="h-full w-full object-cover transition hover:scale-105" />
                   </button>
                 ))}
               </div>

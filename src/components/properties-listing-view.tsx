@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import { MapPin, Search } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { ListingImage } from '@/components/listing-image';
 import { formatEgp, listingStatusClass, listingStatusLabel } from '@/lib/listings';
 import type { PublicPropertyCard } from '@/lib/public-catalogue';
 
@@ -140,13 +140,7 @@ export function PropertiesListingView({ view, offers }: { view: 'all' | 'sale' |
             return (
               <article key={offer.id} className="panel overflow-hidden rounded-2xl">
                 <div className="relative aspect-[16/10] overflow-hidden bg-[var(--canvas)]">
-                  {images.length > 0 ? (
-                    <Image src={images[0]} alt={offer.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" />
-                  ) : (
-                    <div className="grid h-full place-items-center text-sm text-[var(--muted)]">
-                      لا توجد صور
-                    </div>
-                  )}
+                  <ListingImage src={images[0]} alt={offer.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw" className="h-full w-full object-cover" />
                   <span className="absolute right-3 top-3 rounded-full bg-[var(--brand)] px-2.5 py-1 text-[10px] font-bold text-white">
                     {isRental ? 'إيجار' : 'بيع'}
                   </span>

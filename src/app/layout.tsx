@@ -16,7 +16,7 @@ export const metadata: Metadata = {
       { url: '/brand/alqirsh-icon-192.png', type: 'image/png', sizes: '192x192' },
       { url: '/brand/alqirsh-icon-512.png', type: 'image/png', sizes: '512x512' },
     ],
-    apple: [{ url: '/brand/alqirsh-icon-192.png', type: 'image/png', sizes: '192x192' }],
+    apple: [{ url: '/brand/alqirsh-icon-512.png', type: 'image/png', sizes: '512x512' }],
   },
   appleWebApp: { capable: true, title: 'القِرش', statusBarStyle: 'default' },
 };

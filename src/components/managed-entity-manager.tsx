@@ -27,6 +27,7 @@ export function ManagedEntityManager({ config }: { config: Config }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [msg, setMsg] = useState('');
   const [query, setQuery] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     const { data, error } = await createClient().from(config.table).select('*').order('created_at', { ascending: false });
@@ -123,7 +124,7 @@ export function ManagedEntityManager({ config }: { config: Config }) {
 
   async function save(event: FormEvent) {
     event.preventDefault();
-    if (!form) return;
+    if (!form || saving) return;
 
     const missing = config.fields.filter((field) => field.required && (form[field.key] ?? '').trim() === '');
     if (missing.length) {
@@ -149,6 +150,7 @@ export function ManagedEntityManager({ config }: { config: Config }) {
       }
     }
 
+    setSaving(true);
     try {
       await saveManagedEntity(
         config.table,
@@ -159,9 +161,11 @@ export function ManagedEntityManager({ config }: { config: Config }) {
       setEditorOpen(false);
       setEdit(null);
       setMsg('تم الحفظ بنجاح.');
-      void load();
+      await load();
     } catch (error) {
       setMsg(error instanceof Error ? error.message : 'تعذر الحفظ.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -267,7 +271,7 @@ export function ManagedEntityManager({ config }: { config: Config }) {
 
               <div className="md:col-span-2 mt-2 flex justify-end gap-3">
                 <button type="button" onClick={() => { setEdit(null); setForm(null); setEditorOpen(false); }} className="rounded-xl border border-[var(--line)] px-4 py-2 font-bold">إلغاء</button>
-                <button type="submit" className="rounded-xl bg-[var(--brand)] px-5 py-2.5 font-bold text-white">حفظ</button>
+                <button type="submit" disabled={saving} className="rounded-xl bg-[var(--brand)] px-5 py-2.5 font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">{saving ? 'جارٍ الحفظ…' : 'حفظ'}</button>
               </div>
             </form>
           </div>
@@ -281,7 +285,7 @@ export function ManagedEntityManager({ config }: { config: Config }) {
             <p className="mt-3 text-sm text-[var(--muted)]">هل أنت متأكد من حذف هذا العنصر؟</p>
             <div className="mt-5 flex justify-end gap-3">
               <button type="button" onClick={() => { setDel(null); setDeleteOpen(false); }} className="rounded-xl border border-[var(--line)] px-4 py-2 font-bold">إلغاء</button>
-              <button type="button" onClick={async () => { await deleteManagedEntity(config.table, del.id); setDeleteOpen(false); setDel(null); void load(); }} className="rounded-xl bg-red-600 px-4 py-2 font-bold text-white">حذف</button>
+              <button type="button" onClick={async () => { try { await deleteManagedEntity(config.table, del.id); setDeleteOpen(false); setDel(null); setMsg('تم الحذف بنجاح.'); await load(); } catch (error) { setMsg(error instanceof Error ? error.message : 'تعذر الحذف.'); } }} className="rounded-xl bg-red-600 px-4 py-2 font-bold text-white">حذف</button>
             </div>
           </div>
         </div>

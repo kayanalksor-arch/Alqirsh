@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alqirsh-shell-v1';
+const CACHE_NAME = 'alqirsh-shell-v2';
 const APP_SHELL = ['/manifest.webmanifest', '/brand/alqirsh-icon-192.png', '/brand/alqirsh-icon-512.png'];
 
 self.addEventListener('install', (event) => {

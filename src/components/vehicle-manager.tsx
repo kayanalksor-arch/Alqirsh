@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { deleteVehicle as deleteVehicleAction, getVehicleImages, getVehiclePermissionSnapshot, listVehicleBookings, saveVehicle as saveVehicleAction, setVehicleBookingStatus } from '@/app/actions/vehicles';
 import { VehicleBookingButton } from '@/components/vehicle-booking-button';
 import { addBrandWatermark } from '@/lib/image-watermark';
+import { ListingImage } from '@/components/listing-image';
 import { bookingStatusLabel, formatEgp, listingStatusClass, listingStatusLabel, listingStatusesForType } from '@/lib/listings';
 
 type Vehicle = {
@@ -378,11 +379,7 @@ export function VehicleManager() {
           {filtered.map((v) => (
             <article key={v.id} className="panel overflow-hidden rounded-2xl">
               <div className="relative h-40 bg-[var(--canvas)]">
-                {v.image_url ? (
-                  <img src={v.image_url} alt={v.title} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-xs text-[var(--muted)]">لا صورة</div>
-                )}
+                <ListingImage src={v.image_url} alt={v.title} className="h-full w-full object-cover" />
                 <span className="absolute right-2 top-2 rounded-full bg-[var(--brand)] px-2 py-1 text-[9px] font-bold text-white">
                   {v.listing_type === 'rent' ? 'إيجار' : 'بيع'}
                 </span>
@@ -690,9 +687,7 @@ export function VehicleManager() {
                 <X size={16} />
               </button>
             </div>
-            {viewing.image_url && (
-              <img src={viewing.image_url} alt={viewing.title} className="mb-4 h-64 w-full rounded-xl object-cover" />
-            )}
+            <ListingImage src={viewing.image_url} alt={viewing.title} className="mb-4 h-64 w-full rounded-xl object-cover" />
             <div className="space-y-2 text-sm">
               <div><strong>الماركة:</strong> {viewing.brand || '—'}</div>
               <div><strong>الموديل:</strong> {viewing.model || '—'}</div>

@@ -5,11 +5,11 @@ import { createClient } from '@/lib/supabase/server';
 
 const allowed = new Set(['property_owners', 'managed_properties', 'managed_tenants', 'managed_units', 'lease_contracts', 'rent_payments', 'maintenance_requests', 'requests']);
 
-async function authorize() {
+async function authorize(permission = 'properties.management.manage') {
   const db = await createClient();
   const { data: { user } } = await db.auth.getUser();
   if (!user) throw new Error('يجب تسجيل الدخول أولًا.');
-  const { data: hasPermission, error } = await db.rpc('has_section_permission', { permission_name: 'properties.management.manage' });
+  const { data: hasPermission, error } = await db.rpc('has_section_permission', { permission_name: permission });
   if (error || !hasPermission) throw new Error('ليس لديك صلاحية لتنفيذ هذه العملية.');
   return db;
 }
@@ -20,7 +20,7 @@ function clean(payload: Record<string, unknown>) {
 
 export async function saveManagedEntity(table: string, id: string | null, payload: Record<string, unknown>) {
   if (!allowed.has(table)) throw new Error('نوع السجل غير مسموح.');
-  const db = await authorize();
+  const db = await authorize(table === 'requests' ? 'properties.requests.manage' : 'properties.management.manage');
   const values = clean(payload);
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   for (const [key, value] of Object.entries(values)) {
@@ -36,9 +36,10 @@ export async function saveManagedEntity(table: string, id: string | null, payloa
     values.created_by = user!.id;
   }
   try {
-    const query = id ? db.from(table).update(values).eq('id', id) : db.from(table).insert(values);
-    const { error } = await query;
+    const query = id ? db.from(table).update(values).eq('id', id).select('id') : db.from(table).insert(values).select('id');
+    const { data, error } = await query;
     if (error) throw error;
+    if (!data?.length) throw new Error('NO_ROW_AFFECTED');
   } catch (error) {
     if (error instanceof Error && error.message.includes('invalid input syntax for type date')) {
       throw new Error('التاريخ المدخل غير صحيح. تأكد من استخدام الصيغة YYYY-MM-DD.');
@@ -52,12 +53,13 @@ export async function saveManagedEntity(table: string, id: string | null, payloa
 
 export async function deleteManagedEntity(table: string, id: string) {
   if (!allowed.has(table)) throw new Error('نوع السجل غير مسموح.');
-  const db = await authorize();
-  const { error } = await db.from(table).delete().eq('id', id);
+  const db = await authorize(table === 'requests' ? 'properties.requests.manage' : 'properties.management.manage');
+  const { data, error } = await db.from(table).delete().eq('id', id).select('id');
   if (error) {
     console.error('تعذر حذف سجل إدارة الأملاك.', error);
     throw new Error('تعذر حذف البيانات. يُرجى المحاولة مرة أخرى.');
   }
+  if (!data?.length) throw new Error('تعذر حذف السجل؛ قد لا تملك الصلاحية أو أن السجل لم يعد موجودًا.');
   revalidatePath('/dashboard/property-management', 'layout');
   revalidatePath('/dashboard/requests');
 }
