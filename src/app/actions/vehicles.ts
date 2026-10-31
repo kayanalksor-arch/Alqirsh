@@ -16,14 +16,14 @@ async function authorized(permission: keyof typeof permissionField, type: 'rent'
   const { data: { user } } = await db.auth.getUser();
   if (!user) throw new Error('يرجى تسجيل الدخول.');
   const { data: profile } = await db.from('profiles').select('role,status').eq('id', user.id).single();
-  if (profile?.status === 'inactive') throw new Error('الحساب غير نشط.');
+  if (profile?.status !== 'active') throw new Error('الحساب غير نشط.');
   if (profile?.role !== 'admin') {
     const { data: perms } = await db.from('section_permissions').select('*').eq('user_id', user.id).maybeSingle();
     const base:Record<string,string>={view:'cars_rent_view',add:'cars_rent_create',edit:'cars_rent_update',delete:'cars_rent_delete',images:'cars_images_manage',booking_create:'bookings_create',booking_view:'bookings_view',booking_edit:'bookings_update',booking_cancel:'bookings_cancel'};
     const key=type==='sale'?base[permission]?.replace('_rent_','_sale_'):base[permission];
     let allowed=Boolean(perms?.[key as keyof typeof perms]);
     if(!perms){const {data:legacy}=await db.from('vehicle_permissions').select('*').eq('user_id',user.id).maybeSingle();allowed=Boolean(legacy?.[permissionField[permission] as keyof typeof legacy]&&legacy?.[type==='rent'?'can_access_rent':'can_access_sale']);}
-    if(!allowed)throw new Error('ليس لديك صلاحية لتنفيذ هذه العملية.');
+    if(!allowed){await db.rpc('record_denied_admin_access',{p_path:'/dashboard/cars'});throw new Error('\u0644\u064a\u0633 \u0644\u062f\u064a\u0643 \u0635\u0644\u0627\u062d\u064a\u0629 \u0644\u062a\u0646\u0641\u064a\u0630 \u0647\u0630\u0647 \u0627\u0644\u0639\u0645\u0644\u064a\u0629.');}
   }  return { db, user };
 }
 
@@ -149,12 +149,12 @@ export async function getVehiclePermissionSnapshot() {
 
 export async function saveUnifiedPermissions(userId:string,values:Record<string,boolean>){
  const db=await createClient();const {data:{user}}=await db.auth.getUser();if(!user)throw new Error('يرجى تسجيل الدخول.');
- const {data:profile}=await db.from('profiles').select('role').eq('id',user.id).single();if(profile?.role!=='admin')throw new Error('هذه العملية متاحة للمدير العام فقط.');
+ const {data:profile}=await db.from('profiles').select('role,status').eq('id',user.id).single();if(profile?.role!=='admin'||profile.status!=='active')throw new Error('هذه العملية متاحة للمدير العام فقط.');
  if(!userId||userId===user.id)throw new Error('لا يمكنك تغيير صلاحيات حسابك الحالي.');
  const {data:target,error:targetError}=await db.from('profiles').select('id,email,role').eq('id',userId).maybeSingle();
  if(targetError||!target)throw new Error('المستخدم المطلوب غير موجود.');
  if(target.role==='admin')throw new Error('لا يمكن تعديل صلاحيات حساب مدير النظام الأساسي.');
- const keys=['properties_sale_view','properties_sale_create','properties_sale_update','properties_sale_delete','properties_sale_status','properties_rent_view','properties_rent_create','properties_rent_update','properties_rent_delete','properties_rent_status','properties_images_manage','properties_requests_view','properties_requests_manage','properties_management_view','properties_management_manage','cars_sale_view','cars_sale_create','cars_sale_update','cars_sale_delete','cars_rent_view','cars_rent_create','cars_rent_update','cars_rent_delete','cars_images_manage','bookings_view','bookings_create','bookings_update','bookings_cancel','bookings_customer_details','users_permissions_manage','activity_logs_view'];
+ const keys=['properties_sale_view','properties_sale_create','properties_sale_update','properties_sale_delete','properties_sale_status','properties_rent_view','properties_rent_create','properties_rent_update','properties_rent_delete','properties_rent_status','properties_images_manage','properties_requests_view','properties_requests_manage','properties_management_view','properties_management_manage','cars_sale_view','cars_sale_create','cars_sale_update','cars_sale_delete','cars_rent_view','cars_rent_create','cars_rent_update','cars_rent_delete','cars_images_manage','bookings_view','bookings_create','bookings_update','bookings_cancel','bookings_customer_details','users_permissions_manage','activity_logs_view','bus_fleet_view','bus_fleet_manage','bus_trips_view','bus_trips_manage','bus_bookings_view','bus_bookings_manage','bus_receipts_review','bus_tickets_issue','bus_qr_scan','bus_boarding_record','bus_cash_collect','bus_finance_view','bus_expenses_manage','bus_refunds_manage','bus_audit_view','bus_reports_export'];
  if(Object.keys(values).some(key=>!keys.includes(key))||keys.some(key=>typeof values[key]!=='boolean'))throw new Error('قائمة الصلاحيات المرسلة غير صالحة؛ أعد تحميل الصفحة وحاول مجدداً.');
  const row=Object.fromEntries(keys.map(key=>[key,values[key]===true]));
  const {error}=await db.from('section_permissions').upsert({user_id:userId,...row,updated_at:new Date().toISOString(),updated_by:user.id},{onConflict:'user_id'});if(error)throw new Error(error.message);

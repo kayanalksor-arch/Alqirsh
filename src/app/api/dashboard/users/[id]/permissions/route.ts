@@ -5,8 +5,8 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const db = await createClient();
   const { data: { user } } = await db.auth.getUser();
   if (!user) return NextResponse.json({ error: 'يلزم تسجيل الدخول.' }, { status: 401 });
-  const { data: actor } = await db.from('profiles').select('role').eq('id', user.id).maybeSingle();
-  if (actor?.role !== 'admin') return NextResponse.json({ error: 'غير مصرح بإدارة الصلاحيات.' }, { status: 403 });
+  const { data: actor } = await db.from('profiles').select('role,status').eq('id', user.id).maybeSingle();
+  if (actor?.role !== 'admin' || actor.status !== 'active') { await db.rpc('record_denied_admin_access', { p_path: '/api/dashboard/users/permissions' }); return NextResponse.json({ error: 'غير مصرح بإدارة الصلاحيات.' }, { status: 403 }); }
   const { id } = await context.params;
   const { data: target, error: targetError } = await db.from('profiles').select('id').eq('id', id).maybeSingle();
   if (targetError || !target) return NextResponse.json({ error: 'المستخدم غير موجود.' }, { status: 404 });

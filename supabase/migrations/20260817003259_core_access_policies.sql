@@ -20,8 +20,7 @@ $$;
 revoke all on function public.is_platform_manager() from public;
 grant execute on function public.is_platform_manager() to authenticated;
 
--- Server-side bootstrap only; no client code uses the email for authorization.
-update public.profiles set role = 'admin' where lower(email) = 'ca.markode@gmail.com';
+-- Roles are assigned from the approved user-management process, never by email.
 
 alter table public.profiles enable row level security;
 alter table public.sale_offers enable row level security;

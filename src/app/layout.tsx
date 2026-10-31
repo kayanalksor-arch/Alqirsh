@@ -10,21 +10,21 @@ export async function generateMetadata(): Promise<Metadata> {
   return localizedMetadata({
   metadataBase: new URL('https://alqirsh.online'),
   title: {
-    default: locale === 'en' ? 'Alqirsh | Properties and Cars in Egypt' : 'القرش | Alqirsh — عقارات وسيارات في مصر',
+    default: locale === 'en' ? 'Alqirsh | Properties, Cars and Bus Trips in Egypt' : 'القرش | عقارات وسيارات ورحلات باص في مصر | Alqirsh',
     template: locale === 'en' ? '%s | Alqirsh' : '%s | القرش | Alqirsh',
   },
   description: locale === 'en'
-    ? 'Browse property and car listings for sale and rent in Egypt on Alqirsh.'
-    : 'تصفح عروض العقارات والسيارات للبيع والإيجار في مصر على منصة القرش.',
+    ? 'Browse property and car listings for sale and rent, plus published bus trips and booking details on Alqirsh.'
+    : 'تصفح عروض العقارات والسيارات للبيع والإيجار، ورحلات الباص المنشورة وتفاصيل الحجز على منصة القرش.',
   keywords: locale === 'en'
-    ? ['Alqirsh', 'properties in Egypt', 'cars in Egypt']
-    : ['القرش العقارية', 'عقارات في مصر', 'سيارات في مصر'],
+    ? ['Alqirsh', 'properties in Egypt', 'cars in Egypt', 'bus trips in Egypt']
+    : ['القرش', 'عقارات في مصر', 'سيارات في مصر', 'رحلات باص في مصر'],
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 } },
   openGraph: {
     type: 'website', locale: locale === 'en' ? 'en_EG' : 'ar_EG', siteName: 'القرش | Alqirsh',
     url: 'https://alqirsh.online/',
-    title: locale === 'en' ? 'Alqirsh | Properties and Cars in Egypt' : 'القرش | Alqirsh — عقارات وسيارات في مصر',
-    description: locale === 'en' ? 'Browse property and car listings for sale and rent in Egypt on Alqirsh.' : 'تصفح عروض العقارات والسيارات للبيع والإيجار في مصر على منصة القرش.',
+    title: locale === 'en' ? 'Alqirsh | Properties, Cars and Bus Trips in Egypt' : 'القرش | عقارات وسيارات ورحلات باص في مصر | Alqirsh',
+    description: locale === 'en' ? 'Browse property and car listings for sale and rent, plus published bus trips and booking details on Alqirsh.' : 'تصفح عروض العقارات والسيارات للبيع والإيجار، ورحلات الباص المنشورة وتفاصيل الحجز على منصة القرش.',
     images: [{ url: '/brand/alqirsh-logo.png', alt: 'القرش | Alqirsh' }],
   },
   twitter: { card: 'summary_large_image' },

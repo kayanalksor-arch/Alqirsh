@@ -32,11 +32,8 @@ $$;
 revoke all on function public.can_manage_properties() from public;
 grant execute on function public.can_manage_properties() to authenticated;
 
--- Existing administrator bootstrap. This stays server-side and is never used
--- in browser authorization logic.
-update public.profiles
-set role = 'admin'
-where lower(email) = 'ca.markode@gmail.com';
+-- Administrative roles must be assigned through the approved user-management
+-- process; do not promote accounts based on an email address in a migration.
 
 create table if not exists public.property_owners (
   id uuid primary key default gen_random_uuid(),

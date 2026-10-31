@@ -10,12 +10,12 @@ begin
     new.id,
     coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name', ''),
     new.email,
-    case when lower(new.email) = 'ca.markode@gmail.com' then 'admin' else 'member' end
+    'member'
   )
   on conflict (id) do update
     set email = excluded.email,
         full_name = case when public.profiles.full_name is null or public.profiles.full_name = '' then excluded.full_name else public.profiles.full_name end,
-        role = case when lower(excluded.email) = 'ca.markode@gmail.com' then 'admin' else public.profiles.role end;
+        role = public.profiles.role;
   return new;
 end;
 $$;
@@ -31,8 +31,8 @@ select
   id,
   coalesce(raw_user_meta_data ->> 'full_name', raw_user_meta_data ->> 'name', ''),
   email,
-  case when lower(email) = 'ca.markode@gmail.com' then 'admin' else 'member' end
+  'member'
 from auth.users
 on conflict (id) do update
   set email = excluded.email,
-      role = case when lower(excluded.email) = 'ca.markode@gmail.com' then 'admin' else public.profiles.role end;
+      role = public.profiles.role;

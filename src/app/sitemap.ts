@@ -4,31 +4,41 @@ import { getIndexableListings } from '@/lib/public-catalogue';
 const base = 'https://alqirsh.online';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const pages: MetadataRoute.Sitemap = [
-    '/', '/partners', '/contact',
-    '/about', '/privacy-policy', '/terms', '/cookie-policy',
-    '/listing-policy', '/faq', '/report-issue', '/accessibility',
-  ].map((path) => ({ url: `${base}${path}` }));
+  const staticPages = [
+    { path: '/', priority: 1, changeFrequency: 'weekly' },
+    { path: '/properties', priority: 0.9, changeFrequency: 'daily' },
+    { path: '/properties/sale', priority: 0.8, changeFrequency: 'daily' },
+    { path: '/properties/rent', priority: 0.8, changeFrequency: 'daily' },
+    { path: '/cars', priority: 0.9, changeFrequency: 'daily' },
+    { path: '/cars/sale', priority: 0.8, changeFrequency: 'daily' },
+    { path: '/cars/rent', priority: 0.8, changeFrequency: 'daily' },
+    { path: '/trips', priority: 0.8, changeFrequency: 'daily' },
+    { path: '/partners', priority: 0.6, changeFrequency: 'weekly' },
+    { path: '/about', priority: 0.6, changeFrequency: 'monthly' },
+    { path: '/contact', priority: 0.6, changeFrequency: 'monthly' },
+    { path: '/faq', priority: 0.5, changeFrequency: 'monthly' },
+    { path: '/privacy-policy', priority: 0.2, changeFrequency: 'yearly' },
+    { path: '/terms', priority: 0.2, changeFrequency: 'yearly' },
+    { path: '/cookie-policy', priority: 0.2, changeFrequency: 'yearly' },
+    { path: '/listing-policy', priority: 0.2, changeFrequency: 'yearly' },
+    { path: '/accessibility', priority: 0.2, changeFrequency: 'yearly' },
+    { path: '/report-issue', priority: 0.2, changeFrequency: 'yearly' },
+  ] as const;
+  const pages: MetadataRoute.Sitemap = staticPages.map(({ path, priority, changeFrequency }) => ({ url: `${base}${path}`, priority, changeFrequency }));
 
   try {
     const { properties, cars } = await getIndexableListings();
-    const saleCount = properties.filter((item) => item.listingType === 'sale').length;
-    const rentCount = properties.filter((item) => item.listingType === 'rental').length;
-    const carSaleCount = cars.filter((item) => item.listing_type === 'sale').length;
-    const carRentCount = cars.filter((item) => item.listing_type === 'rent').length;
-    if (saleCount || rentCount) pages.push({ url: `${base}/properties` });
-    if (saleCount) pages.push({ url: `${base}/properties/sale` });
-    if (rentCount) pages.push({ url: `${base}/properties/rent` });
-    if (carSaleCount || carRentCount) pages.push({ url: `${base}/cars` });
-    if (carSaleCount) pages.push({ url: `${base}/cars/sale` });
-    if (carRentCount) pages.push({ url: `${base}/cars/rent` });
     const details: MetadataRoute.Sitemap = [
       ...properties.map((item) => ({
         url: `${base}/properties/${item.id}${item.listingType === 'rental' ? '?type=rental' : ''}`,
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
         ...(item.updated_at ? { lastModified: item.updated_at } : {}),
       })),
       ...cars.map((item) => ({
         url: `${base}/cars/${item.id}`,
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
         ...(item.updated_at ? { lastModified: item.updated_at } : {}),
       })),
     ];
