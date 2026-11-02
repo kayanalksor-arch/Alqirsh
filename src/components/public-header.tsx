@@ -8,9 +8,8 @@ import { PublicDesktopNav } from '@/components/public-desktop-nav';
 import { LocalizedText } from '@/components/language-provider';
 import { createClient } from '@/lib/supabase/server';
 
-const links = [['/', 'الرئيسية'], ['/properties', 'العقارات'], ['/cars', 'السيارات'], ['/trips', 'رحلات وحجز الباصات'], ['/trips/bookings', 'My trip bookings'], ['/partners', 'شركاء النجاح'], ['/contact', 'تواصل معنا']] as const;
+const links = [['/', 'الرئيسية'], ['/properties', 'العقارات'], ['/cars', 'السيارات'], ['/partners', 'شركاء النجاح'], ['/contact', 'تواصل معنا']] as const;
 const dashboardPermissionKeys = [
-  'bus_fleet_view', 'bus_fleet_manage', 'bus_trips_view', 'bus_trips_manage', 'bus_bookings_view', 'bus_bookings_manage', 'bus_receipts_review', 'bus_qr_scan', 'bus_cash_collect', 'bus_finance_view', 'bus_expenses_manage', 'bus_refunds_manage', 'bus_audit_view', 'bus_reports_export',
   'cars_sale_view', 'cars_sale_create', 'cars_sale_update', 'cars_sale_delete', 'cars_rent_view', 'cars_rent_create', 'cars_rent_update', 'cars_rent_delete',
   'properties_sale_view', 'properties_sale_create', 'properties_sale_update', 'properties_sale_delete', 'properties_rent_view', 'properties_rent_create', 'properties_rent_update', 'properties_rent_delete',
   'properties_management_view', 'properties_requests_view', 'properties_requests_manage', 'activity_logs_view',

@@ -12,8 +12,6 @@ export default function robots(): MetadataRoute.Robots {
         '/login',
         '/signup',
         '/forgot-password',
-        '/trips/bookings',
-        '/trips/*/book',
       ],
     },
     sitemap: 'https://alqirsh.online/sitemap.xml',

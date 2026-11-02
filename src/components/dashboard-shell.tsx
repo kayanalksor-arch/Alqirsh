@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Activity, BookOpen, Building2, BusFront, CarFront, CircleHelp, ClipboardList, FileText, Globe2, Handshake, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, Shield, UserRound, Users, Wrench, X, Home } from 'lucide-react';
+import { Activity, BookOpen, Building2, CarFront, CircleHelp, ClipboardList, FileText, Globe2, Handshake, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Search, Settings, Shield, UserRound, Users, Wrench, X, Home } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { LogoutButton } from '@/components/logout-button';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -22,14 +22,12 @@ const groups: NavGroup[] = [
     { href: '/about', ar: 'من نحن', en: 'About us', icon: BookOpen },
     { href: '/properties', ar: 'العقارات', en: 'Properties', icon: Building2 },
     { href: '/cars', ar: 'السيارات', en: 'Cars', icon: CarFront },
-    { href: '/trips', ar: 'الرحلات وحجز الباصات', en: 'Bus trips and booking', icon: BusFront },
     { href: '/partners', ar: 'الشركاء', en: 'Partners', icon: Handshake },
     { href: '/contact', ar: 'اتصل بنا', en: 'Contact us', icon: Globe2 },
     { href: '/faq', ar: 'الأسئلة الشائعة', en: 'Frequently asked questions', icon: CircleHelp },
   ] },
   { id: 'account', ar: 'حسابي', en: 'My account', items: [
     { href: '/dashboard/profile', ar: 'بياناتي الشخصية', en: 'My profile', icon: UserRound, permissions: ['__dashboard_profile'] },
-    { href: '/trips/bookings', ar: 'حجوزاتي وتذاكري', en: 'My bookings and tickets', icon: ClipboardList },
   ] },
   { id: 'policies', ar: 'الشروط والسياسات', en: 'Terms and policies', items: [
     { href: '/terms', ar: 'الشروط والأحكام', en: 'Terms and conditions', icon: FileText },
@@ -43,8 +41,6 @@ const groups: NavGroup[] = [
     { href: '/dashboard/cars', ar: 'إدارة السيارات', en: 'Manage cars', icon: CarFront, permissions: ['cars_sale_view','cars_sale_create','cars_sale_update','cars_sale_delete','cars_rent_view','cars_rent_create','cars_rent_update','cars_rent_delete'] },
     { href: '/dashboard/requests', ar: 'طلبات العملاء', en: 'Customer requests', icon: ClipboardList, permissions: ['properties_requests_view','properties_requests_manage'] },
     { href: '/dashboard/property-management', ar: 'إدارة الأملاك', en: 'Property management', icon: Wrench, permissions: ['properties_management_view'] },
-    { href: '/dashboard/trips', ar: 'إدارة الرحلات والحجوزات', en: 'Trips and bookings', icon: BusFront, permissions: ['bus_fleet_view','bus_fleet_manage','bus_trips_view','bus_trips_manage','bus_bookings_view','bus_bookings_manage','bus_receipts_review','bus_tickets_issue','bus_qr_scan','bus_boarding_record','bus_cash_collect','bus_finance_view','bus_expenses_manage','bus_refunds_manage','bus_audit_view','bus_reports_export'] },
-    { href: '/dashboard/trips/scan', ar: 'قارئ التذاكر QR', en: 'QR ticket scanner', icon: BusFront, permissions: ['bus_qr_scan'] },
     { href: '/dashboard/users', ar: 'إدارة المستخدمين', en: 'Manage users', icon: Users, adminOnly: true },
     { href: '/dashboard/partners', ar: 'إدارة الشركاء', en: 'Manage partners', icon: Handshake, adminOnly: true },
     { href: '/dashboard/activity-log', ar: 'سجل العمليات', en: 'Activity log', icon: Activity, permissions: ['activity_logs_view'] },

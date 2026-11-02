@@ -32,10 +32,6 @@ export async function proxy(request: NextRequest) {
 
     const admin = profile.role === 'admin';
     const p = permissions as Record<string, boolean | null> | null;
-    const canTrips = Boolean(p && [
-      'bus_fleet_view','bus_fleet_manage','bus_trips_view','bus_trips_manage','bus_bookings_view','bus_bookings_manage',
-      'bus_receipts_review','bus_qr_scan','bus_cash_collect','bus_finance_view','bus_expenses_manage','bus_refunds_manage','bus_audit_view','bus_reports_export',
-    ].some((key) => p[key] === true));
     const canCarsSale = Boolean(p && ['cars_sale_view','cars_sale_create','cars_sale_update','cars_sale_delete'].some((key) => p[key] === true));
     const canCarsRent = Boolean(p && ['cars_rent_view','cars_rent_create','cars_rent_update','cars_rent_delete'].some((key) => p[key] === true));
     const canProperties = Boolean(p && [
@@ -53,15 +49,13 @@ export async function proxy(request: NextRequest) {
       || ((path === '/dashboard/properties' || path.startsWith('/dashboard/properties/')) && canProperties)
       || (path.startsWith('/dashboard/property-management') && p?.properties_management_view === true)
       || (path.startsWith('/dashboard/requests') && (p?.properties_requests_view === true || p?.properties_requests_manage === true))
-      || (path.startsWith('/dashboard/trips') && canTrips)
       || (path.startsWith('/dashboard/activity-log') && p?.activity_logs_view === true)
       || (path.startsWith('/dashboard/users') && admin);
 
     if (!allowed) {
       await supabase.rpc('record_denied_admin_access', { p_path: path });
       const url = request.nextUrl.clone();
-      url.pathname = canTrips ? '/dashboard/trips'
-        : canCarsSale || canCarsRent ? '/dashboard/cars'
+      url.pathname = canCarsSale || canCarsRent ? '/dashboard/cars'
           : canProperties ? '/dashboard/properties'
             : p?.properties_management_view ? '/dashboard/property-management'
               : p?.properties_requests_view || p?.properties_requests_manage ? '/dashboard/requests' : '/';

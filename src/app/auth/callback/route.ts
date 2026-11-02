@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const url = request.nextUrl.clone();
   const code = url.searchParams.get('code');
   const next = url.searchParams.get('next') ?? '/dashboard';
-  const safeNext = next === '/auth/update-password' || next === '/trips/bookings'
+  const safeNext = next === '/auth/update-password'
     ? next
     : next.startsWith('/dashboard') && !next.startsWith('//') ? next : '/dashboard';
 

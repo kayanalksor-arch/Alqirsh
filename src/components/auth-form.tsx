@@ -30,7 +30,7 @@ export function AuthForm({ mode, notice }: { mode: Mode; notice?: string }) {
   const passwordStrength = password.length < 8 ? 0 : password.length >= 12 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password) ? 3 : /[A-Za-z]/.test(password) && /\d/.test(password) ? 2 : 1;
   const redirectAfterAuth = () => {
     const requested = new URLSearchParams(window.location.search).get('next');
-    const next = requested?.startsWith('/dashboard') && !requested.startsWith('//') ? requested : '/trips/bookings';
+    const next = requested?.startsWith('/dashboard') && !requested.startsWith('//') ? requested : '/';
     router.replace(`/auth/continue?next=${encodeURIComponent(next)}`);
     router.refresh();
   };
@@ -99,7 +99,7 @@ export function AuthForm({ mode, notice }: { mode: Mode; notice?: string }) {
     setError(''); setBusy(true);
     try {
       const next = new URLSearchParams(window.location.search).get('next');
-      const safeNext = next?.startsWith('/dashboard') && !next.startsWith('//') ? next : '/trips/bookings';
+      const safeNext = next?.startsWith('/dashboard') && !next.startsWith('//') ? next : '/';
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}`;
       const { error: authError } = await createClient().auth.signInWithOAuth({ provider: 'google', options: { redirectTo, queryParams: { prompt: 'select_account' } } });
       if (authError) throw new Error('google');

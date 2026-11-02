@@ -20,7 +20,7 @@ self.addEventListener('fetch', (event) => {
   // fetches directly. This worker only supplies an offline page for navigation.
   if (request.method !== 'GET' || request.mode !== 'navigate' || url.origin !== self.location.origin || url.pathname.startsWith('/_next/') || url.pathname.startsWith('/api/')) return;
 
-  // Dynamic pages, including trips and authenticated pages, are never cached.
+  // Dynamic pages and authenticated pages are never cached.
   // The fallback is only used when a page navigation itself cannot reach the server.
   event.respondWith((async () => {
     try {

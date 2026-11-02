@@ -19,13 +19,13 @@ type Suggestion = { label: Localized; action: string };
 type Message = { id: number; role: 'assistant' | 'user'; text: Localized | string; suggestions?: Suggestion[]; results?: Result[] };
 
 const localized = (ar: string, en: string): Localized => ({ ar, en });
-const greeting = (): Localized => localized('أهلًا بك في القرش! 👋\nأستطيع مساعدتك في البحث عن العقارات والسيارات، واستعراض رحلات الباص المنشورة، والوصول إلى معلومات الموقع وخيارات التواصل.', 'Welcome to Alqirsh! 👋\nI can help you search property and car listings, browse published bus trips, find information on the site, and reach the contact options.');
+const greeting = (): Localized => localized('أهلًا بك في القرش! 👋\nأستطيع مساعدتك في البحث عن العقارات والسيارات، ومعرفة معلومات الموقع وخيارات التواصل.', 'Welcome to Alqirsh! 👋\nI can help you search property and car listings, find information on the site, and reach the contact options.');
 
 function mainOptions(): Suggestion[] {
   const options: Array<[string, string, string]> = [
     ['property', '🏠 أبحث عن عقار', '🏠 Find a property'],
     ['car', '🚗 أبحث عن سيارة', '🚗 Find a car'],
-    ['bus', '🚌 رحلات الباص والحجز', '🚌 Bus trips and booking'],
+    ['mobility', '🚘 استفسار عن مشوار خاص أو المطار', '🚘 Ask about private rides or airport transfers'],
     ['installments', '💰 التقسيط وطرق الدفع', '💰 Installments and payment'],
     ['investment', '📈 الفرص الاستثمارية', '📈 Investment listings'],
     ['management', '🏢 إدارة الأملاك', '🏢 Property management'],
@@ -44,9 +44,9 @@ function normalizeQuery(value: string) {
   return value.toLowerCase().replace(/[\u064B-\u065F\u0670\u0640]/gu, '').replace(/[أإآ]/gu, 'ا').replace(/ى/gu, 'ي');
 }
 
-function classifyIntent(value: string): 'property' | 'car' | 'bus' | 'installments' | 'contact' | 'management' | 'finishing' | 'partnership' | 'investment' | 'faq' | 'about' | 'add-listing' | null {
+function classifyIntent(value: string): 'property' | 'car' | 'mobility' | 'installments' | 'contact' | 'management' | 'finishing' | 'partnership' | 'investment' | 'faq' | 'about' | 'add-listing' | null {
   const query = normalizeQuery(value);
-  if (/باص|باصات|رحلة|رحلات|تذكرة|تذاكر|bus trips?|coach|ticket|boarding/u.test(query)) return 'bus';
+  if (/مطار|مطارات|airport|private ride|special ride|مشوار خاص|مشاوير|تنقل خاص/u.test(query)) return 'mobility';
   if (/سيار|عربيات|cars?\b|vehicles?\b|تويوتا|هيونداي|كيا\b|مرسيدس/u.test(query)) {
     return /اضيف|اضافه|انشر|نشر|اعرض|اعلان|listing|publish/u.test(query) ? 'add-listing' : 'car';
   }
@@ -72,8 +72,8 @@ function formatMoney(value: number | null, locale: Locale) {
 function infoResponse(action: string): Message {
   const contact = [{ action: 'contact', label: localized('اتصل بالفريق', 'Contact the team') }, { action: 'home', label: localized('القائمة الرئيسية', 'Main menu') }];
   switch (action) {
-    case 'bus':
-      return message(Date.now(), localized('تعرض صفحة الرحلات مواعيد الباصات المنشورة وتفاصيل المقاعد والأسعار وخطوات الحجز المتاحة لكل رحلة. افتح الصفحة لمراجعة الرحلات الحالية.', 'The Trips page shows published bus schedules, seat and price details, and available booking steps. Open it to review current trips.'), [{ action: 'open-trips', label: localized('فتح رحلات الباص', 'Open bus trips') }, ...contact]);
+    case 'mobility':
+      return message(Date.now(), localized('للاستفسار عن مشوار خاص أو الانتقال من وإلى المطار، تواصل مع الفريق للتأكد من التوفر والتفاصيل. لا ينفذ المساعد حجزًا أو طلب نقل.', 'For a private ride or airport transfer enquiry, contact the team to confirm availability and details. The assistant does not book or request transportation.'), [{ action: 'open-contact', label: localized('التواصل مع الفريق', 'Contact the team') }, { action: 'car', label: localized('استعراض السيارات', 'Browse cars') }]);
     case 'installments':
       return message(Date.now(), localized('لا تنشر صفحات الموقع نسب فوائد أو مقدمات أو مدد تقسيط موحدة. قد تختلف الشروط بحسب العرض، لذا تحقق من تفاصيله المنشورة أو استفسر من الفريق قبل اتخاذ قرار.', 'The site does not publish standard interest rates, down payments, or installment terms. Terms may vary by listing, so check its published details or ask the team before making a decision.'), [...contact, { action: 'faq', label: localized('الأسئلة الشائعة', 'FAQ') }]);
     case 'management':
@@ -85,7 +85,7 @@ function infoResponse(action: string): Message {
     case 'investment':
       return message(Date.now(), localized('يمكنني عرض العقارات المنشورة للبيع لاستكشاف الخيارات. لا تضمن المنصة عوائد استثمارية، وتحتاج التفاصيل المالية الخاصة بكل عرض إلى تأكيد من المعلن.', 'I can show published properties for sale. The site does not guarantee investment returns, and financial details for each listing should be confirmed with its advertiser.'), [{ action: 'property-sale', label: localized('استعراض عقارات للبيع', 'Browse properties for sale') }, ...contact]);
     case 'about':
-      return message(Date.now(), localized('القرش منصة رقمية تعرض العقارات والسيارات للبيع أو الإيجار، وتنشر مواعيد رحلات الباص وخطوات حجز المقاعد المتاحة. يمكنك قراءة نبذة المنصة أو استكشاف الأقسام.', 'Alqirsh is a digital platform for property and car listings for sale or rent, as well as published bus schedules and available seat booking steps. Read more about the platform or explore its sections.'), [{ action: 'open-about', label: localized('عن القرش', 'About Alqirsh') }, { action: 'property', label: localized('العقارات', 'Properties') }, { action: 'car', label: localized('السيارات', 'Cars') }, { action: 'open-trips', label: localized('رحلات الباص', 'Bus trips') }]);
+      return message(Date.now(), localized('القرش منصة رقمية لاستعراض العقارات والسيارات للبيع أو الإيجار والاطلاع على المعلومات المنشورة لكل عرض. يمكنك قراءة نبذة المنصة أو استكشاف الأقسام.', 'Alqirsh is a digital platform for browsing property and car listings for sale or rent and reviewing the information published for each listing. Read more about the platform or explore its sections.'), [{ action: 'open-about', label: localized('عن القرش', 'About Alqirsh') }, { action: 'property', label: localized('العقارات', 'Properties') }, { action: 'car', label: localized('السيارات', 'Cars') }]);
     case 'faq':
       return message(Date.now(), localized('تجد الإجابات المنشورة عن البحث والتواصل واستخدام الموقع في صفحة الأسئلة الشائعة.', 'Published answers about searching, contacting advertisers, and using the site are available on the FAQ page.'), [{ action: 'open-faq', label: localized('فتح الأسئلة الشائعة', 'Open FAQ') }, ...contact]);
     case 'add-listing':
@@ -188,7 +188,7 @@ export function PublicAssistant() {
       addAssistant(response.text as Localized, response.suggestions);
     } else {
       addUser(text);
-      const answer = localized('أستطيع البحث في قوائم العقارات والسيارات العامة، وإرشادك إلى رحلات الباص المنشورة والإجابة عن معلومات الموقع المتاحة. هل تبحث عن عقار أو سيارة أو رحلة؟', 'I can search public property and car listings, guide you to published bus trips, and answer questions using available site information. Are you looking for a property, a car, or a trip?');
+      const answer = localized('أستطيع البحث في قوائم العقارات والسيارات العامة والإجابة عن معلومات الموقع المنشورة. هل تبحث عن عقار أو سيارة أو خدمة متعلقة بالتنقل؟', 'I can search public property and car listings and answer questions based on published site information. Are you looking for a property, a car, or a transportation related service?');
       addAssistant(answer, mainOptions());
     }
   };
@@ -217,7 +217,7 @@ export function PublicAssistant() {
       await performSearch('car', '', view, currentLocale === 'en' ? view === 'sale' ? 'Cars for sale' : view === 'rent' ? 'Cars for rent' : 'All cars' : view === 'sale' ? 'سيارات للبيع' : view === 'rent' ? 'سيارات للإيجار' : 'كل السيارات');
       return;
     }
-    const target = action === 'open-contact' ? '/contact' : action === 'open-faq' ? '/faq' : action === 'open-about' ? '/about' : action === 'open-partners' ? '/partners' : action === 'open-trips' ? '/trips' : null;
+    const target = action === 'open-contact' ? '/contact' : action === 'open-faq' ? '/faq' : action === 'open-about' ? '/about' : action === 'open-partners' ? '/partners' : null;
     const destination = action === 'open-login' ? '/login' : target;
     if (destination) { window.location.assign(destination); return; }
     const response = infoResponse(action);

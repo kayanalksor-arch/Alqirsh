@@ -9,7 +9,6 @@ import { useLanguage } from '@/components/language-provider';
 
 type User = { id: string; full_name: string | null; email: string | null; phone: string | null; role: string; status: string; created_at: string | null; last_sign_in_at: string | null };
 const groups: { title: string; keys: string[] }[] = [
-  { title: 'إدارة رحلات الباصات', keys: ['bus_fleet_view','bus_fleet_manage','bus_trips_view','bus_trips_manage','bus_bookings_view','bus_bookings_manage','bus_receipts_review','bus_tickets_issue','bus_qr_scan','bus_boarding_record','bus_cash_collect','bus_finance_view','bus_expenses_manage','bus_refunds_manage','bus_audit_view','bus_reports_export'] },
   { title: 'إدارة التطبيق', keys: ['dashboard_view', 'public_site_view', 'users_permissions_manage', 'activity_logs_view', 'settings_manage'] },
   { title: 'عقارات البيع', keys: ['properties_sale_view', 'properties_sale_create', 'properties_sale_update', 'properties_sale_delete', 'properties_sale_status'] },
   { title: 'عقارات الإيجار', keys: ['properties_rent_view', 'properties_rent_create', 'properties_rent_update', 'properties_rent_delete', 'properties_rent_status'] },
@@ -20,7 +19,6 @@ const groups: { title: string; keys: string[] }[] = [
   { title: 'الطلبات والمرفقات', keys: ['properties_images_manage', 'properties_requests_view', 'properties_requests_manage'] },
 ];
 const labels: Record<string, string> = {
-  bus_fleet_view: 'عرض الأسطول', bus_fleet_manage: 'إدارة الأسطول', bus_trips_view: 'عرض الرحلات', bus_trips_manage: 'إدارة الرحلات ونشرها', bus_bookings_view: 'عرض حجوزات الرحلات', bus_bookings_manage: 'إدارة حجوزات الرحلات', bus_receipts_review: 'مراجعة إيصالات التحويل', bus_tickets_issue: 'إصدار التذاكر', bus_qr_scan: 'فحص رموز QR', bus_boarding_record: 'تسجيل صعود الركاب', bus_cash_collect: 'تحصيل النقدية', bus_finance_view: 'عرض التقارير المالية', bus_expenses_manage: 'إدارة المصروفات', bus_refunds_manage: 'إدارة الاستردادات', bus_audit_view: 'عرض سجل عمليات الرحلات', bus_reports_export: 'تصدير تقارير الرحلات',
   dashboard_view: 'عرض لوحة التحكم', public_site_view: 'عرض الموقع العام', users_permissions_manage: 'إدارة المستخدمين والصلاحيات', activity_logs_view: 'عرض سجل الحركة', settings_manage: 'إدارة الإعدادات',
   properties_sale_view: 'عرض العقارات', properties_sale_create: 'إضافة عقار', properties_sale_update: 'تعديل عقار', properties_sale_delete: 'حذف أو أرشفة عقار', properties_sale_status: 'تغيير حالة العقار',
   properties_rent_view: 'عرض العقارات', properties_rent_create: 'إضافة عقار', properties_rent_update: 'تعديل عقار', properties_rent_delete: 'حذف أو أرشفة عقار', properties_rent_status: 'تغيير حالة العقار',
