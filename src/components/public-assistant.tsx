@@ -93,7 +93,7 @@ function infoResponse(action: string): Message {
     case 'service-request':
       return message(Date.now(), localized('لم أجد نموذجًا عامًا لطلب هذه الخدمة. يمكنك إرسال استفسار عبر صفحة التواصل، ولن أرسل أي طلب نيابةً عنك.', 'I could not find a public service request form. You can send an enquiry through the contact page; I will not submit anything on your behalf.'), [{ action: 'open-contact', label: localized('صفحة التواصل', 'Contact page') }, ...contact]);
     case 'contact':
-      return message(Date.now(), localized('يمكنك الاتصال بفريق القرش على الرقم 01090886364 أو فتح صفحة التواصل للمزيد من الخيارات.', 'Call the Alqirsh team at 01090886364 or open the Contact page for more options.'), [{ action: 'open-contact', label: localized('صفحة التواصل', 'Contact page') }, ...contact]);
+      return message(Date.now(), localized('يمكنك الاتصال بفريق القرش على الرقمين 01090886364 أو 01158455997، أو فتح صفحة التواصل للمزيد من الخيارات.', 'Call the Alqirsh team at 01090886364 or 01158455997, or open the Contact page for more options.'), [{ action: 'open-contact', label: localized('صفحة التواصل', 'Contact page') }, ...contact]);
     default:
       return message(Date.now(), localized('أهلًا بك في القرش.', 'Welcome to Alqirsh.'), mainOptions());
   }

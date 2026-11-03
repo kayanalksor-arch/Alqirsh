@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 type ContactSettings = { app_name: string | null; contact_phone: string | null; about_text: string | null };
-const fallbackPhones = ['01090886364', '01019905309'];
+const fallbackPhones = ['01090886364', '01158455997'];
 const phonesFrom = (value: string | null) => value?.split(/[\n,/|-]+/).map((phone) => phone.trim()).filter(Boolean) ?? fallbackPhones;
 
 export function ContactCard() {
